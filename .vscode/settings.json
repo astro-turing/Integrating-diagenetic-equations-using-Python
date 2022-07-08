@@ -1,0 +1,12 @@
+{
+    "python.pythonPath": "</home/hanno/.local/share/virtualenvs/Start_15062022-zBGrDqjK/bin/>",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/*.pyc": true,
+        "**/__pycache__": true
+    }
+}

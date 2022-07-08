@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+smop = "*"
+numpy = "*"
+ply = "*"
+networkx = "*"
+future = "*"
+matplotlib = "*"
+pytest = "*"
+scipy = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.10"
