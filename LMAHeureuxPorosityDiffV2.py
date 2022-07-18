@@ -68,12 +68,14 @@ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaIni
         Phi = u(5)
         #formulas for compact representation
     #dPhi=(auxcon*((Phi^3)/(1-Phi))*(1-exp(10-10/Phi))); # eq. 25 + 17 in comb with eq. 44
-        dPhislash = (auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))
+        dPhislash = (auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
+                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))
         #OmegaPA=max(0,cCa*cCO3*KRat-1)^m1; #eq. 45
     #OmegaDA=(max(0,1-cCa*cCO3*KRat)^m2)*(x*Xstar <= DeepLimit && x*Xstar >= ShallowLimit); #eq. 45
     #OmegaPC=max(0,cCa*cCO3-1)^n1; #eq. 45
     #OmegaDC=max(0,1-cCa*cCO3)^n2; #eq. 45
-        coA = CA * (((np.amax(0,1 - cCa * cCO3 * KRat) ** m2) * (x * Xstar <= DeepLimit and x * Xstar >= ShallowLimit)) - nu1 * (np.amax(0,cCa * cCO3 * KRat - 1) ** m1))
+        coA = CA * (((np.amax(0,1 - cCa * cCO3 * KRat) ** m2) * (x * Xstar <= DeepLimit 
+              and x * Xstar >= ShallowLimit)) - nu1 * (np.amax(0,cCa * cCO3 * KRat - 1) ** m1))
         coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** n1) - nu2 * (np.amax(0,1 - cCa * cCO3) ** n2))
         U = (presum + rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
         
@@ -83,9 +85,14 @@ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaIni
         #Describe eqs. 40 to 43
         c = np.array([[1],[1],[Phi],[Phi],[1]])
         
-        f = np.array([[0],[0],[Phi * dCa * dudx(3)],[Phi * dCO3 * dudx(4)],[(auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dudx(5)]])
+        f = np.array([[0],[0],[Phi * dCa * dudx(3)],[Phi * dCO3 * dudx(4)],
+                     [(auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dudx(5)]])
         
-        s = np.array([[(- U * dudx(1) - Da * ((1 - CA) * coA + lambda_ * CA * coC))],[(- U * dudx(2) + Da * (lambda_ * (1 - CC) * coC + CC * coA))],[(- Phi * W * dudx(3) + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC))],[(- Phi * W * dudx(4) + Da * (1 - Phi) * (delta - cCO3) * (coA - lambda_ * coC))],[(Da * (1 - Phi) * (coA - lambda_ * coC) - dudx(5) * (W + Wslash * Phi + dudx(5) * dPhislash))]])
+        s = np.array([[(- U * dudx(1) - Da * ((1 - CA) * coA + lambda_ * CA * coC))],[(- U * dudx(2) + Da * 
+                       (lambda_ * (1 - CC) * coC + CC * coA))],[(- Phi * W * dudx(3) + Da * (1 - Phi) * 
+                       (delta - cCa) * (coA - lambda_ * coC))],[(- Phi * W * dudx(4) + Da * (1 - Phi) * 
+                       (delta - cCO3) * (coA - lambda_ * coC))],[(Da * (1 - Phi) * (coA - lambda_ * coC) 
+                        - dudx(5) * (W + Wslash * Phi + dudx(5) * dPhislash))]])
         return c,f,s
     
     ## Solve PDE
