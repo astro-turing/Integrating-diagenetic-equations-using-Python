@@ -74,7 +74,9 @@ times = np.array([np.arange(0,1000+10,10)])
 sol = LMAHeureuxPorosityDiffV2(AragoniteInitial,CalciteInitial,CaInitial,
                                CO3Initial,PorInitial,AragoniteSurface,
                                CalciteSurface,CaSurface,CO3Surface,
-                               PorSurface,times,depths,sedimentationrate,k1,k2,k3,k4,m1,m2,n1,n2,b,beta,rhos,rhow,rhos0,KA,KC,muA,D0Ca,PhiNR,PhiInfty,options,Phi0,DCa,DCO3,DeepLimit,ShallowLimit)
+                               PorSurface,times,depths,sedimentationrate,k1,k2,k3,k4,m1,m2,n1,n2,b,
+                               beta,rhos,rhow,rhos0,KA,KC,muA,D0Ca,PhiNR,PhiInfty,options,Phi0,DCa,
+                               DCO3,DeepLimit,ShallowLimit)
 ## plot results
 #through time
 timeslice = 10
