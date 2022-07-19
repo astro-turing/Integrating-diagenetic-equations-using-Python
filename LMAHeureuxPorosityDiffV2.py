@@ -88,11 +88,11 @@ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaIni
         f = np.array([[0],[0],[Phi * dCa * dudx(3)],[Phi * dCO3 * dudx(4)],
                      [(auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dudx(5)]])
         
-        s = np.array([[(- U * dudx(1) - Da * ((1 - CA) * coA + lambda_ * CA * coC))],[(- U * dudx(2) + Da * 
-                       (lambda_ * (1 - CC) * coC + CC * coA))],[(- Phi * W * dudx(3) + Da * (1 - Phi) * 
-                       (delta - cCa) * (coA - lambda_ * coC))],[(- Phi * W * dudx(4) + Da * (1 - Phi) * 
-                       (delta - cCO3) * (coA - lambda_ * coC))],[(Da * (1 - Phi) * (coA - lambda_ * coC) 
-                        - dudx(5) * (W + Wslash * Phi + dudx(5) * dPhislash))]])
+        s = np.array([[(- U * dudx(1) - Da * ((1 - CA) * coA + lambda_ * CA * coC))],
+                     [(- U * dudx(2) + Da * (lambda_ * (1 - CC) * coC + CC * coA))],
+                     [(- Phi * W * dudx(3) + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC))],
+                     [(- Phi * W * dudx(4) + Da * (1 - Phi) * (delta - cCO3) * (coA - lambda_ * coC))],
+                     [(Da * (1 - Phi) * (coA - lambda_ * coC) - dudx(5) * (W + Wslash * Phi + dudx(5) * dPhislash))]])
         return c,f,s
     
     ## Solve PDE

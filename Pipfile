@@ -12,6 +12,8 @@ future = "*"
 matplotlib = "*"
 pytest = "*"
 scipy = "*"
+py-pde = "*"
+tqdm = "*"
 
 [dev-packages]
 
