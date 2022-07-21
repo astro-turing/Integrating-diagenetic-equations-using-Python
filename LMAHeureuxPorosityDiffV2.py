@@ -1,4 +1,5 @@
 import numpy as np
+from pde import FieldCollection, PDEBase, ScalarField
     
 def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
     CO3Initial = None,PorInitial = None, AragoniteSurface = None, CalciteSurface = None,CaSurface = None,
@@ -100,3 +101,84 @@ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaIni
     # return c,f,s
     
     return sol
+
+
+class LMAHeureuxPorosityDiff(PDEBase):
+    """SIR-model with diffusive mobility"""
+
+    def __init__(self, AragoniteInitial, CalciteInitial, CaInitial,
+                 CO3Initial, PorInitial, AragoniteSurface,
+                 CalciteSurface, CaSurface, CO3Surface,
+                 PorSurface,times,depths,sedimentationrate,k1, k2, k3, k4, m1, m2, n1, n2, b,
+                 beta,rhos,rhow,rhos0,KA,KC,muA,D0Ca,PhiNR,PhiInfty,options,Phi0,DCa,
+                 DCO3,DeepLimit,ShallowLimit):
+
+        self.AragoniteInitial = AragoniteInitial
+        self.CalciteInitial = CalciteInitial 
+        self.CaInitial = CaInitial
+        self.CO3Initial = CO3Initial 
+        self.PorInitial = PorInitial
+        self.AragoniteSurface = AragoniteSurface
+        self.CalciteSurface = CalciteSurface
+        self.CaSurface = CaSurface
+        self.CO3Surface = CO3Surface
+        self.PorSurface = PorSurface
+        self.times = times
+        self.depths = depths
+        self.sedimentationrate = sedimentationrate
+        self.k1 = k1
+        self.k2 = k2
+        self.k3 = k3
+        self.k4 = k4
+        self.m1 = m1
+        self.m2 = m2
+        self.n1 = n1
+        self.n2 = n2
+        self.b = b
+        self.beta = beta,
+        self.rhos = rhos
+        self.rhow = rhow
+        self.rhos0 = rhos0
+        self.KA = KA
+        self.KC = KA
+        self.muA = muA
+        self.D0Ca = D0Ca
+        self.PhiNR = PhiNR
+        self.PhiInfty = PhiInfty 
+        self.options = options
+        self.Phi0 = Phi0
+        self.DCa = DCa
+        self.DCO3 = DCO3
+        self.DeepLimit = DeepLimit
+        self.ShallowLimit = ShallowLimit
+
+    def get_state(self, s, i):
+        """generate a suitable initial state"""
+
+        InitialConditions = lambda depth = None: np.array([[AragoniteInitial(depth)],[CalciteInitial(depth)],
+                                                       [CaInitial(depth)],[CO3Initial(depth)],[PorInitial(depth)]])        
+        norm = (s + i).data.max()  # maximal density
+        if norm > 1:
+            s /= norm
+            i /= norm
+        s.label = "Susceptible"
+        i.label = "Infected"
+
+        # create recovered field
+        r = ScalarField(s.grid, data=1 - s - i, label="Recovered")
+        return FieldCollection([s, i, r])
+
+    def evolution_rate(self, state, t=0):
+        s, i, r = state
+
+        c = np.array([[1],[1],[Phi],[Phi],[1]])
+        
+        f = np.array([[0],[0],[Phi * dCa * dudx(3)],[Phi * dCO3 * dudx(4)],
+                     [(auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dudx(5)]])
+        
+        s = np.array([[(- U * dudx(1) - Da * ((1 - CA) * coA + lambda_ * CA * coC))],
+                     [(- U * dudx(2) + Da * (lambda_ * (1 - CC) * coC + CC * coA))],
+                     [(- Phi * W * dudx(3) + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC))],
+                     [(- Phi * W * dudx(4) + Da * (1 - Phi) * (delta - cCO3) * (coA - lambda_ * coC))],
+                     [(Da * (1 - Phi) * (coA - lambda_ * coC) - dudx(5) * (W + Wslash * Phi + dudx(5) * dPhislash))]])
+        return FieldCollection([ds_dt, di_dt, dr_dt])
