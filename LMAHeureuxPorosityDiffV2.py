@@ -1,3 +1,4 @@
+from curses import KEY_C1
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
     
@@ -106,26 +107,19 @@ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaIni
 class LMAHeureuxPorosityDiff(PDEBase):
     """SIR-model with diffusive mobility"""
 
-    def __init__(self, AragoniteInitial, CalciteInitial, CaInitial,
-                 CO3Initial, PorInitial, AragoniteSurface,
-                 CalciteSurface, CaSurface, CO3Surface,
-                 PorSurface,times,depths,sedimentationrate,k1, k2, k3, k4, m1, m2, n1, n2, b,
-                 beta,rhos,rhow,rhos0,KA,KC,muA,D0Ca,PhiNR,PhiInfty,options,Phi0,DCa,
-                 DCO3,DeepLimit,ShallowLimit):
+    def __init__(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface,
+                 PorSurface, sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1,
+                 n2, b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, PhiInfty, Phi0, DCa,
+                 DCO3, DeepLimit, ShallowLimit):
 
-        self.AragoniteInitial = AragoniteInitial
-        self.CalciteInitial = CalciteInitial 
-        self.CaInitial = CaInitial
-        self.CO3Initial = CO3Initial 
-        self.PorInitial = PorInitial
         self.AragoniteSurface = AragoniteSurface
         self.CalciteSurface = CalciteSurface
         self.CaSurface = CaSurface
         self.CO3Surface = CO3Surface
         self.PorSurface = PorSurface
-        self.times = times
-        self.depths = depths
         self.sedimentationrate = sedimentationrate
+        self.Xstar = Xstar
+        self.Tstar = Tstar
         self.k1 = k1
         self.k2 = k2
         self.k3 = k3
@@ -135,12 +129,12 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.n1 = n1
         self.n2 = n2
         self.b = b
-        self.beta = beta,
+        self.beta = beta
         self.rhos = rhos
         self.rhow = rhow
         self.rhos0 = rhos0
         self.KA = KA
-        self.KC = KA
+        self.KC = KC
         self.muA = muA
         self.D0Ca = D0Ca
         self.PhiNR = PhiNR
@@ -152,24 +146,45 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.DeepLimit = DeepLimit
         self.ShallowLimit = ShallowLimit
 
-    def get_state(self, s, i):
+    def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, PorSurface):
         """generate a suitable initial state"""
+       
+        AragoniteSurface.label = "ARA"
+        CalciteSurface.label = "CAL"
+        CaSurface.label = "Ca"
+        CO3Surface.label = "CO3"
+        PorSurface.label = "Po"
 
-        InitialConditions = lambda depth = None: np.array([[AragoniteInitial(depth)],[CalciteInitial(depth)],
-                                                       [CaInitial(depth)],[CO3Initial(depth)],[PorInitial(depth)]])        
-        norm = (s + i).data.max()  # maximal density
-        if norm > 1:
-            s /= norm
-            i /= norm
-        s.label = "Susceptible"
-        i.label = "Infected"
-
-        # create recovered field
-        r = ScalarField(s.grid, data=1 - s - i, label="Recovered")
-        return FieldCollection([s, i, r])
+        return FieldCollection([AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, PorSurface])
 
     def evolution_rate(self, state, t=0):
-        s, i, r = state
+        CA, CC, cCa, cCO3, Phi = state
+
+        g = 100 * 9.81
+        dCa = self.DCa / self.D0Ca
+        dCO3 = self.DCO3 / self.D0Ca
+        delta = self.rhos / (self.muA * np.sqrt(self.KC))
+        Xstar = self.Xstar
+        Tstar = self.Tstar
+        Da = self.k2 * Tstar
+        lambda_ = self.k3 / self.k2
+        auxcon = self.beta / (self.D0Ca * self.b * g * self.rhow * (self.PhiNR - self.PhiInfty))
+        rhorat0 = (self.rhos0 / self.rhow - 1) * self.beta / self.sedimentationrate
+        rhorat = (self.rhos / self.rhow - 1) * self.beta / self.sedimentationrate
+        presum = 1 - rhorat0 * self.Phi0 ** 3 * (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)     
+
+        dPhislash = (auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
+                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))
+
+        coA = CA * (((np.amax(0,1 - cCa * cCO3 * self.KRat) ** self.m2) * (x * Xstar <= self.DeepLimit 
+              and x * Xstar >= self.ShallowLimit)) - self.nu1 * (np.amax(0,cCa * cCO3 * self.KRat - 1) ** self.m1))
+
+        coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * (np.amax(0,1 - cCa * cCO3) ** self.n2))
+        U = (presum + rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
+        
+        W = (presum - rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi)))
+        
+        Wslash = - rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
 
         c = np.array([[1],[1],[Phi],[Phi],[1]])
         
