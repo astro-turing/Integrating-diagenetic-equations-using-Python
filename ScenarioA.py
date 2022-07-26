@@ -97,14 +97,12 @@ depths = CartesianGrid([[0, xmesh.max()]], [len(xmesh)])
   
 tspan = times / Tstar
 
-Depths = ScalarField.from_expression(depths,["x"])
 AragoniteSurface = ScalarField(depths, CAIni)
 CalciteSurface = ScalarField(depths, CCIni)
 CaSurface = ScalarField(depths, cCaIni)
 CO3Surface = ScalarField(depths, cCO3Ini)
 PorSurface = ScalarField(depths, PhiIni)
-state = eq.get_state(Depths, AragoniteSurface, CalciteSurface, CaSurface, 
-                     CO3Surface, PorSurface)
+state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, PorSurface)
 
 # simulate the pde
 tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
