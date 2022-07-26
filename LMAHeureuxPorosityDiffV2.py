@@ -49,7 +49,8 @@ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaIni
                                                        [CaInitial(depth)],[CO3Initial(depth)],[PorInitial(depth)]])
     ## Define Boundary conditions
     
-    def BoundaryConditions(AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, PorSurface, ul, t): 
+    def BoundaryConditions(AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
+                           PorSurface, ul, t): 
         #eq. 35 top
         ql = np.array([[0],[0],[0],[0],[0]])
         pl = np.array([[ul(1) - AragoniteSurface(t)],[ul(2) - CalciteSurface(t)],[ul(3) - CaSurface(t)],
@@ -88,7 +89,8 @@ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaIni
         c = np.array([[1],[1],[Phi],[Phi],[1]])
         
         f = np.array([[0],[0],[Phi * dCa * dudx(3)],[Phi * dCO3 * dudx(4)],
-                     [(auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dudx(5)]])
+                     [(auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) 
+                     * dudx(5)]])
         
         s = np.array([[(- U * dudx(1) - Da * ((1 - CA) * coA + lambda_ * CA * coC))],
                      [(- U * dudx(2) + Da * (lambda_ * (1 - CC) * coC + CC * coA))],
@@ -139,26 +141,27 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.D0Ca = D0Ca
         self.PhiNR = PhiNR
         self.PhiInfty = PhiInfty 
-        self.options = options
         self.Phi0 = Phi0
         self.DCa = DCa
         self.DCO3 = DCO3
         self.DeepLimit = DeepLimit
         self.ShallowLimit = ShallowLimit
 
-    def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, PorSurface):
+    def get_state(self, Depths, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
+                  PorSurface):
         """generate a suitable initial state"""
-       
+        Depths.label = "Depth"
         AragoniteSurface.label = "ARA"
         CalciteSurface.label = "CAL"
         CaSurface.label = "Ca"
         CO3Surface.label = "CO3"
         PorSurface.label = "Po"
 
-        return FieldCollection([AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, PorSurface])
+        return FieldCollection([Depths, AragoniteSurface, CalciteSurface, CaSurface, 
+                                CO3Surface, PorSurface])
 
     def evolution_rate(self, state, t=0):
-        CA, CC, cCa, cCO3, Phi = state
+        Depths, CA, CC, cCa, cCO3, Phi = state
 
         g = 100 * 9.81
         dCa = self.DCa / self.D0Ca
@@ -174,10 +177,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
         presum = 1 - rhorat0 * self.Phi0 ** 3 * (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)     
 
         dPhislash = (auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
-                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))
+                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))       
 
         coA = CA * (((np.amax(0,1 - cCa * cCO3 * self.KRat) ** self.m2) * (x * Xstar <= self.DeepLimit 
-              and x * Xstar >= self.ShallowLimit)) - self.nu1 * (np.amax(0,cCa * cCO3 * self.KRat - 1) ** self.m1))
+              and Depths * Xstar >= self.ShallowLimit)) - self.nu1 * (np.amax(0,cCa * cCO3 * self.KRat - 1) ** self.m1))
 
         coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * (np.amax(0,1 - cCa * cCO3) ** self.n2))
         U = (presum + rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
@@ -185,6 +188,26 @@ class LMAHeureuxPorosityDiff(PDEBase):
         W = (presum - rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi)))
         
         Wslash = - rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
+
+        dCA_dt = - U * CA.gradient() - Da * ((1 - CA) * coA + lambda_ * CA * coC)
+
+        dCC_dt = - U * CC.gradient() + Da * (lambda_ * (1 - CC) * coC + CC * coA)
+
+        dcCa_dx = cCa.gradient()
+
+        dcCa_dt = (Phi * dCa * dcCa_dx).gradient()/Phi \
+                  -W * dcCa_dx + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC)/Phi
+
+        dcCO3_dx = cCO3.gradient()
+
+        dcCO3_dt = (Phi * dCO3 * dcCO3_dx).gradient()/Phi \
+                   -W * dcCO3_dx + Da * (1 - Phi) * (delta - cCO3) * (coA - lambda_ * coC)/Phi
+
+        dPhi_dx = Phi.gradient()
+
+        dPhi_dt = ((auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient() \
+                  + Da * (1 - Phi) * (coA - lambda_ * coC) - dPhi_dx * (W + Wslash * Phi + dPhi_dx * dPhislash)
+                  
 
         c = np.array([[1],[1],[Phi],[Phi],[1]])
         
@@ -196,4 +219,4 @@ class LMAHeureuxPorosityDiff(PDEBase):
                      [(- Phi * W * dudx(3) + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC))],
                      [(- Phi * W * dudx(4) + Da * (1 - Phi) * (delta - cCO3) * (coA - lambda_ * coC))],
                      [(Da * (1 - Phi) * (coA - lambda_ * coC) - dudx(5) * (W + Wslash * Phi + dudx(5) * dPhislash))]])
-        return FieldCollection([ds_dt, di_dt, dr_dt])
+        return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])
