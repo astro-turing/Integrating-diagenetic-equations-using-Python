@@ -3,7 +3,7 @@
 #Taken from table 1 (p. 7)
 import numpy as np
 import matplotlib.pyplot as plt
-from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiffV2, LMAHeureuxPorosityDiff
+from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
 from pde import PlotTracker, CartesianGrid, ScalarField
 
 Scenario = 'A'
@@ -16,7 +16,6 @@ cCaIni = cCa0
 cCO30 = 0.326
 cCO3Ini = cCO30
 Phi0 = 0.6
-
 PhiIni = 0.5
 
 ShallowLimit = 50
@@ -52,8 +51,10 @@ PhiNR = Phi0
 
 PhiInfty = 0.01
 
-depths = np.arange(0,500+2,2)
-## Define Initial Conditions
+# depths = np.arange(0,500+2,2)
+times = np.arange(0,1000+10,10)
+
+""" ## Define Initial Conditions
 #Initial conditions: homogeneous sediment at all depths (eqs 36)
 AragoniteInitial = lambda depth = None: CAIni
 CalciteInitial = lambda depth = None: CCIni
@@ -70,7 +71,6 @@ CO3Surface = lambda time = None: cCO30
 PorSurface = lambda time = None: Phi0
 ## options
 options = odeset('MaxStep',0.01,'RelTol',1e-10,'AbsTol',1e-10)
-times = np.array([np.arange(0,1000+10,10)])
 ## run solver
 sol = LMAHeureuxPorosityDiffV2(AragoniteInitial,CalciteInitial,CaInitial,
                                CO3Initial,PorInitial,AragoniteSurface,
@@ -81,33 +81,35 @@ sol = LMAHeureuxPorosityDiffV2(AragoniteInitial,CalciteInitial,CaInitial,
 ## plot results
 #through time
 timeslice = 10
-print("type(sol) = {}".format(type(sol)))
+print("type(sol) = {}".format(type(sol))) """
 
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface, CO3Surface,
-                            PorSurface, sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1,
-                            n2, b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, PhiInfty, Phi0, DCa,
-                            DCO3, DeepLimit, ShallowLimit)
-
-
-xmesh = depths / Xstar 
-depths = CartesianGrid([[0, xmesh.max()]], [len(xmesh)])
-  
-tspan = times / Tstar
-
-Depths = ScalarField.from_expression(depths,["x"])
+depths = CartesianGrid([[0, 502/Xstar]], [251], periodic=False)
 AragoniteSurface = ScalarField(depths, CAIni)
 CalciteSurface = ScalarField(depths, CCIni)
 CaSurface = ScalarField(depths, cCaIni)
 CO3Surface = ScalarField(depths, cCO3Ini)
 PorSurface = ScalarField(depths, PhiIni)
+
+eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface, 
+                            CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, 
+                            Phi0, sedimentationrate, Xstar, Tstar, k1, k2, 
+                            k3, k4, m1, m2, n1, n2, b, beta, rhos, rhow, rhos0, 
+                            KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
+                            DeepLimit, ShallowLimit)
+
+Depths = ScalarField.from_expression(depths,"x")
+  
+tspan = times / Tstar
+
 state = eq.get_state(Depths, AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
 # simulate the pde
-tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
+# tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
+tracker = PlotTracker(interval=10)
 sol = eq.solve(state, t_range=tspan.max(), dt=tspan[1]-tspan[0], tracker=["progress", tracker])
 # plt.plot(depths,sol(timeslice,:,5))
 ## Componentwise Plots
