@@ -3,6 +3,7 @@
 #Taken from table 1 (p. 7)
 import numpy as np
 import matplotlib.pyplot as plt
+from sympy import Heaviside
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
 from pde import PlotTracker, CartesianGrid, ScalarField
 
@@ -51,9 +52,6 @@ PhiNR = Phi0
 
 PhiInfty = 0.01
 
-# depths = np.arange(0,500+2,2)
-times = np.arange(0,1000+10,10)
-
 """ ## Define Initial Conditions
 #Initial conditions: homogeneous sediment at all depths (eqs 36)
 AragoniteInitial = lambda depth = None: CAIni
@@ -93,24 +91,32 @@ CaSurface = ScalarField(depths, cCaIni)
 CO3Surface = ScalarField(depths, cCO3Ini)
 PorSurface = ScalarField(depths, PhiIni)
 
+# I need those two fields for computing coA, which is rather involved.
+# There may be a simpler way of selecting these depths, but I haven't
+# found one yet. For now these two Heaviside step functions.
+not_too_shallow = ScalarField.from_expression(depths, 
+                  "heaviside(x-{}, 0)".format(ShallowLimit/Xstar))
+not_too_deep = ScalarField.from_expression(depths, 
+               "heaviside({}-x, 0)".format(DeepLimit/Xstar))    
+
 eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface, 
                             CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, 
                             Phi0, sedimentationrate, Xstar, Tstar, k1, k2, 
                             k3, k4, m1, m2, n1, n2, b, beta, rhos, rhow, rhos0, 
                             KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
-                            DeepLimit, ShallowLimit)
+                            not_too_shallow, not_too_deep)             
 
-Depths = ScalarField.from_expression(depths,"x")
-  
+time_step = 1e-6
+times = np.arange(0,1+time_step, time_step)
 tspan = times / Tstar
 
-state = eq.get_state(Depths, AragoniteSurface, CalciteSurface, CaSurface, 
+state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
 # simulate the pde
 # tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
-tracker = PlotTracker(interval=10)
-sol = eq.solve(state, t_range=tspan.max(), dt=tspan[1]-tspan[0], tracker=["progress", tracker])
+tracker = PlotTracker(interval=0.1)
+sol = eq.solve(state, t_range=tspan.max(), dt=time_step, tracker=["progress", tracker])
 # plt.plot(depths,sol(timeslice,:,5))
 ## Componentwise Plots
 # timeslice = 5

@@ -1,6 +1,7 @@
 from curses import KEY_C1
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
+from sympy import evaluate
     
 """ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
     CO3Initial = None,PorInitial = None, AragoniteSurface = None, CalciteSurface = None,CaSurface = None,
@@ -110,19 +111,18 @@ class LMAHeureuxPorosityDiff(PDEBase):
     """SIR-model with diffusive mobility"""
 
     def __init__(self, AragoniteSurface, CalciteSurface, CaSurface, 
-                CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, 
-                Phi0, sedimentationrate, Xstar, Tstar, k1, k2, 
-                k3, k4, m1, m2, n1, n2, b, beta, rhos, rhow, rhos0, 
-                KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, DeepLimit, 
-                ShallowLimit):
+                CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, Phi0, 
+                sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, 
+                n2, b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, 
+                PhiInfty, DCa, DCO3, not_too_shallow, not_too_deep):
 
         self.AragoniteSurface = AragoniteSurface
         self.CalciteSurface = CalciteSurface
         self.CaSurface = CaSurface
         self.CO3Surface = CO3Surface
         self.PorSurface = PorSurface
-        self.bc_CA = [{"value": CA0}, {"NeumannBC"}]
-        self.bc_CC = [{"value": CC0}, {"NeumannBC"}]
+        self.bc_CA = [{"value": CA0}, {"curvature" : 0}]
+        self.bc_CC = [{"value": CC0}, {"curvature": 0}]
         self.bc_cCa = [{"value": cCa0}, {"derivative": 0}]
         self.bc_cCO3 = [{"value": cCO30}, {"derivative": 0}]
         self.bc_Phi = [{"value": Phi0}, {"derivative": 0}]
@@ -131,8 +131,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.Tstar = Tstar
         self.k1 = k1
         self.k2 = k2
+        self.nu1 = k1/k2
         self.k3 = k3
         self.k4 = k4
+        self.nu2 = k4/k3
         self.m1 = m1
         self.m2 = m2
         self.n1 = n1
@@ -152,24 +154,23 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.Phi0 = Phi0
         self.DCa = DCa
         self.DCO3 = DCO3
-        self.DeepLimit = DeepLimit
-        self.ShallowLimit = ShallowLimit
+        self.not_too_shallow = not_too_shallow
+        self.not_too_deep = not_too_deep
 
-    def get_state(self, Depths, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
+    def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
         """generate a suitable initial state"""
-        Depths.label = "Depth"
         AragoniteSurface.label = "ARA"
         CalciteSurface.label = "CAL"
         CaSurface.label = "Ca"
         CO3Surface.label = "CO3"
         PorSurface.label = "Po"
 
-        return FieldCollection([Depths, AragoniteSurface, CalciteSurface, CaSurface, 
+        return FieldCollection([AragoniteSurface, CalciteSurface, CaSurface, 
                                 CO3Surface, PorSurface])
 
     def evolution_rate(self, state, t=0):
-        Depths, CA, CC, cCa, cCO3, Phi = state
+        CA, CC, cCa, cCO3, Phi = state
 
         g = 100 * 9.81
         dCa = self.DCa / self.D0Ca
@@ -186,18 +187,33 @@ class LMAHeureuxPorosityDiff(PDEBase):
         rhorat = (self.rhos / self.rhow - 1) * self.beta / \
                  self.sedimentationrate
         presum = 1 - rhorat0 * self.Phi0 ** 3 * \
-                 (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)     
+                 (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)   
 
         dPhislash = (auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
-                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))       
+                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))      
 
-        coA = CA * (((np.amax(0,1 - cCa * cCO3 * self.KRat) ** self.m2) * \
-              (Depths * Xstar <= self.DeepLimit and \
-              Depths * Xstar >= self.ShallowLimit)) - self.nu1 * \
-              (np.amax(0,cCa * cCO3 * self.KRat - 1) ** self.m1))
+        two_factors = cCa * cCO3
+        two_factors_upp_lim = two_factors.to_scalar(lambda f: np.fmin(f,1))
+        two_factors_low_lim = two_factors.to_scalar(lambda f: np.fmax(f,1))
 
-        coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * \
-              (np.amax(0,1 - cCa * cCO3) ** self.n2))
+        three_factors = two_factors * self.KRat
+        three_factors_upp_lim = three_factors.to_scalar(lambda f: np.fmin(f,1))
+        three_factors_low_lim = three_factors.to_scalar(lambda f: np.fmax(f,1))
+
+        coA = CA * (((1 - three_factors_upp_lim) ** self.m2) * \
+                    (self.not_too_deep * self.not_too_shallow) - self.nu1 * \
+                    (three_factors_low_lim - 1) ** self.m1)
+ 
+        # coA = CA * (((np.amax(0,1 - cCa * cCO3 * self.KRat) ** self.m2) * \
+        #      (Depths.data * Xstar <= self.DeepLimit and \
+        #      Depths.data * Xstar >= self.ShallowLimit)) - self.nu1 * \
+        #      (np.amax(0,cCa * cCO3 * self.KRat - 1) ** self.m1))
+
+        coC = CC * ((two_factors_low_lim ** self.n1) - self.nu2 * \
+                    two_factors_upp_lim ** self.n2)
+
+        # coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * \
+        #      (np.amax(0,1 - cCa * cCO3) ** self.n2))
 
         U = (presum + rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
         
@@ -209,19 +225,20 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         dCC_dt = - U * CC.gradient(self.bc_CC) + Da * (lambda_ * (1 - CC) * coC + CC * coA)
 
-        dcCa_dx = cCa.gradient(self.bc_cCa)
+        dcCa_dx = cCa.gradient(self.bc_cCa)[0]
 
-        dcCa_dt = (Phi * dCa * dcCa_dx).gradient()/Phi \
-                  -W * dcCa_dx + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC)/Phi
+        dcCa_dt = ((Phi * dCa * dcCa_dx).gradient(self.bc_cCa))/Phi -W * dcCa_dx \
+                  + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC)/Phi
 
-        dcCO3_dx = cCO3.gradient(self.bc_cCO3)
+        dcCO3_dx = cCO3.gradient(self.bc_cCO3)[0]
 
-        dcCO3_dt = (Phi * dCO3 * dcCO3_dx).gradient()/Phi \
-                   -W * dcCO3_dx + Da * (1 - Phi) * (delta - cCO3) * (coA - lambda_ * coC)/Phi
+        dcCO3_dt = (Phi * dCO3 * dcCO3_dx).gradient(self.bc_cCO3)/Phi \
+                   -W * dcCO3_dx + Da * (1 - Phi) * (delta - cCO3) * \
+                   (coA - lambda_ * coC)/Phi
 
-        dPhi_dx = Phi.gradient(self.bc_Phi)
+        dPhi_dx = Phi.gradient(self.bc_Phi)[0]
 
-        dPhi_dt = ((auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient() \
+        dPhi_dt = ((auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient(self.bc_Phi) \
                   + Da * (1 - Phi) * (coA - lambda_ * coC) - dPhi_dx * (W + Wslash * Phi + dPhi_dx * dPhislash)
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])
