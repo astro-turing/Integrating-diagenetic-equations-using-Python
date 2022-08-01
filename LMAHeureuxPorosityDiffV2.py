@@ -2,6 +2,7 @@ from curses import KEY_C1
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
 from sympy import evaluate
+np.seterr(all="raise")
     
 """ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
     CO3Initial = None,PorInitial = None, AragoniteSurface = None, CalciteSurface = None,CaSurface = None,
@@ -209,8 +210,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         #      Depths.data * Xstar >= self.ShallowLimit)) - self.nu1 * \
         #      (np.amax(0,cCa * cCO3 * self.KRat - 1) ** self.m1))
 
-        coC = CC * ((two_factors_low_lim ** self.n1) - self.nu2 * \
-                    two_factors_upp_lim ** self.n2)
+        coC = CC * (((two_factors_low_lim - 1) ** self.n1) - self.nu2 * \
+                    (1 - two_factors_upp_lim) ** self.n2)
 
         # coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * \
         #      (np.amax(0,1 - cCa * cCO3) ** self.n2))
