@@ -106,7 +106,7 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
                             not_too_shallow, not_too_deep)             
 
-time_step = 1e-6
+time_step = 1e-7
 tspan = np.arange(0,1+time_step, time_step)
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 

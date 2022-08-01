@@ -157,6 +157,21 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.not_too_shallow = not_too_shallow
         self.not_too_deep = not_too_deep
 
+        self.g = 100 * 9.81
+        self.dCa = self.DCa / self.D0Ca
+        self.dCO3 = self.DCO3 / self.D0Ca
+        self.delta = self.rhos / (self.muA * np.sqrt(self.KC))
+        self.Da = self.k2 * self.Tstar
+        self.lambda_ = self.k3 / self.k2
+        self.auxcon = self.beta / (self.D0Ca * self.b * self.g * self.rhow * \
+                 (self.PhiNR - self.PhiInfty))
+        self.rhorat0 = (self.rhos0 / self.rhow - 1) * self.beta / \
+                  self.sedimentationrate
+        self.rhorat = (self.rhos / self.rhow - 1) * self.beta / \
+                 self.sedimentationrate
+        self.presum = 1 - self.rhorat0 * self.Phi0 ** 3 * \
+                 (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)        
+
     def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
         """generate a suitable initial state"""
@@ -170,26 +185,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
                                 CO3Surface, PorSurface])
 
     def evolution_rate(self, state, t=0):
-        CA, CC, cCa, cCO3, Phi = state
+        CA, CC, cCa, cCO3, Phi = state   
 
-        g = 100 * 9.81
-        dCa = self.DCa / self.D0Ca
-        dCO3 = self.DCO3 / self.D0Ca
-        delta = self.rhos / (self.muA * np.sqrt(self.KC))
-        Xstar = self.Xstar
-        Tstar = self.Tstar
-        Da = self.k2 * Tstar
-        lambda_ = self.k3 / self.k2
-        auxcon = self.beta / (self.D0Ca * self.b * g * self.rhow * \
-                 (self.PhiNR - self.PhiInfty))
-        rhorat0 = (self.rhos0 / self.rhow - 1) * self.beta / \
-                  self.sedimentationrate
-        rhorat = (self.rhos / self.rhow - 1) * self.beta / \
-                 self.sedimentationrate
-        presum = 1 - rhorat0 * self.Phi0 ** 3 * \
-                 (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)   
-
-        dPhislash = (auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
+        dPhislash = (self.auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
                     (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))      
 
         two_factors = cCa * cCO3
@@ -215,30 +213,32 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * \
         #      (np.amax(0,1 - cCa * cCO3) ** self.n2))
 
-        U = (presum + rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
+        U = (self.presum + self.rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
         
-        W = (presum - rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi)))
+        W = (self.presum - self.rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi)))
         
-        Wslash = - rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
+        Wslash = - self.rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
 
-        dCA_dt = - U * CA.gradient(self.bc_CA) - Da * ((1 - CA) * coA + lambda_ * CA * coC)
+        dCA_dt = - U * CA.gradient(self.bc_CA) - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
 
-        dCC_dt = - U * CC.gradient(self.bc_CC) + Da * (lambda_ * (1 - CC) * coC + CC * coA)
+        dCC_dt = - U * CC.gradient(self.bc_CC) + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
 
         dcCa_dx = cCa.gradient(self.bc_cCa)[0]
 
-        dcCa_dt = ((Phi * dCa * dcCa_dx).gradient(self.bc_cCa))/Phi -W * dcCa_dx \
-                  + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC)/Phi
+        dcCa_dt = ((Phi * self.dCa * dcCa_dx).gradient(self.bc_cCa))/Phi -W * dcCa_dx \
+                  + self.Da * (1 - Phi) * (self.delta - cCa) * (coA - self.lambda_ * coC)/Phi
 
         dcCO3_dx = cCO3.gradient(self.bc_cCO3)[0]
 
-        dcCO3_dt = (Phi * dCO3 * dcCO3_dx).gradient(self.bc_cCO3)/Phi \
-                   -W * dcCO3_dx + Da * (1 - Phi) * (delta - cCO3) * \
-                   (coA - lambda_ * coC)/Phi
+        dcCO3_dt = (Phi * self.dCO3 * dcCO3_dx).gradient(self.bc_cCO3)/Phi \
+                   -W * dcCO3_dx + self.Da * (1 - Phi) * (self.delta - cCO3) * \
+                   (coA - self.lambda_ * coC)/Phi
 
         dPhi_dx = Phi.gradient(self.bc_Phi)[0]
 
-        dPhi_dt = ((auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient(self.bc_Phi) \
-                  + Da * (1 - Phi) * (coA - lambda_ * coC) - dPhi_dx * (W + Wslash * Phi + dPhi_dx * dPhislash)
+        dPhi_dt = ((self.auxcon * ((Phi ** 3) / (1 - Phi)) * \
+                   (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient(self.bc_Phi) \
+                  + self.Da * (1 - Phi) * (coA - self.lambda_ * coC) - dPhi_dx * \
+                    (W + Wslash * Phi + dPhi_dx * dPhislash)
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])
