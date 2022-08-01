@@ -1,4 +1,3 @@
-from curses import KEY_C1
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
 from sympy import evaluate

@@ -3,9 +3,9 @@
 #Taken from table 1 (p. 7)
 import numpy as np
 import matplotlib.pyplot as plt
-from sympy import Heaviside
+from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
-from pde import PlotTracker, CartesianGrid, ScalarField
+from pde import CartesianGrid, ScalarField, FileStorage
 
 Scenario = 'A'
 CA0 = 0.6
@@ -107,16 +107,22 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             not_too_shallow, not_too_deep)             
 
 time_step = 1e-6
-times = np.arange(0,1+time_step, time_step)
-tspan = times / Tstar
+tspan = np.arange(0,1+time_step, time_step)
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
 # simulate the pde
 # tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
-tracker = PlotTracker(interval=0.1)
-sol = eq.solve(state, t_range=tspan.max(), dt=time_step, tracker=["progress", tracker])
+storage = FileStorage("Results/LMAHeureuxPorosityDiff_" + datetime.now().\
+                      strftime("%d_%m_%Y_%H_%M_%S") + ".npz")
+
+sol, info = eq.solve(state, t_range=tspan.max(), dt=time_step, method="explicit", \
+               scheme = "rk", tracker=["progress", storage.tracker(0.01)], ret_info = True)
+
+print("Meta-information about the solution : {}".format(info))        
+
+sol.plot()
 # plt.plot(depths,sol(timeslice,:,5))
 ## Componentwise Plots
 # timeslice = 5
