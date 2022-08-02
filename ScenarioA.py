@@ -84,7 +84,7 @@ print("type(sol) = {}".format(type(sol))) """
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-depths = CartesianGrid([[0, 502/Xstar]], [251], periodic=False)
+depths = CartesianGrid([[0, 502/Xstar]], [200], periodic=False)
 AragoniteSurface = ScalarField(depths, CAIni)
 CalciteSurface = ScalarField(depths, CCIni)
 CaSurface = ScalarField(depths, cCaIni)
