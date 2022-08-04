@@ -187,8 +187,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
     def evolution_rate(self, state, t=0):
         CA, CC, cCa, cCO3, Phi = state   
 
-        dPhislash = (self.auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
-                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))      
+        # dPhislash = (self.auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
+        #            (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))    
 
         two_factors = cCa * cCO3
         two_factors_upp_lim = two_factors.to_scalar(lambda f: np.fmin(f,1))
@@ -217,7 +217,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         
         W = (self.presum - self.rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi)))
         
-        Wslash = - self.rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
+        # Wslash = - self.rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
 
         dCA_dt = - U * CA.gradient(self.bc_CA) - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
 
@@ -234,11 +234,22 @@ class LMAHeureuxPorosityDiff(PDEBase):
                    -W * dcCO3_dx + self.Da * (1 - Phi) * (self.delta - cCO3) * \
                    (coA - self.lambda_ * coC)/Phi
 
-        dPhi_dx = Phi.gradient(self.bc_Phi)[0]
+        F = 1 - np.exp(10 - 10 / Phi)
 
-        dPhi_dt = ((self.auxcon * ((Phi ** 3) / (1 - Phi)) * \
-                   (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient(self.bc_Phi) \
-                  + self.Da * (1 - Phi) * (coA - self.lambda_ * coC) - dPhi_dx * \
-                    (W + Wslash * Phi + dPhi_dx * dPhislash)
+        dPhi = self.auxcon * F * (Phi ** 3) / (1 - Phi)
+
+        # dPhi_dx = Phi.gradient(self.bc_Phi)[0]
+
+        # dPhi_dt = ((self.auxcon * ((Phi ** 3) / (1 - Phi)) * \
+        #           (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient(self.bc_Phi) \
+        #          + self.Da * (1 - Phi) * (coA - self.lambda_ * coC) - dPhi_dx * \
+        #            (W + Wslash * Phi + dPhi_dx * dPhislash)
+
+
+        # This is closer to the original form of (43) from l' Heureux than
+        # the Matlab implementation.
+        dPhi_dt = - (W * Phi).gradient(self.bc_Phi) \
+                  + dPhi * Phi.laplace(self.bc_Phi) \
+                  + self.Da * (1 - Phi) * (coA - self.lambda_ * coC)
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])

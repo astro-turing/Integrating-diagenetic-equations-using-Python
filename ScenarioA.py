@@ -106,8 +106,11 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
                             not_too_shallow, not_too_deep)             
 
-time_step = 1e-7
-tspan = np.arange(0,1+time_step, time_step)
+# Let us try to years 710 years, like Niklas.
+end_time = 1/Tstar
+number_of_steps = 1e3
+time_step = end_time/number_of_steps
+tspan = np.arange(0,end_time+time_step, time_step)
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
