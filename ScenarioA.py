@@ -5,7 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
-from pde import CartesianGrid, ScalarField, FileStorage
+from pde import CartesianGrid, ScalarField, FileStorage, ScipySolver
+from pde import Controller, PlotTracker, PrintTracker, RealtimeIntervals
+
 
 Scenario = 'A'
 CA0 = 0.6
@@ -52,39 +54,10 @@ PhiNR = Phi0
 
 PhiInfty = 0.01
 
-""" ## Define Initial Conditions
-#Initial conditions: homogeneous sediment at all depths (eqs 36)
-AragoniteInitial = lambda depth = None: CAIni
-CalciteInitial = lambda depth = None: CCIni
-CaInitial = lambda depth = None: cCaIni
-CO3Initial = lambda depth = None: cCO3Ini
-PorInitial = lambda depth = None: PhiIni
-## Define Boundary Conditions
-# Boundary conditions: Constant support of input at the sediment-water interface (eqs. 35)
-# Lack of diffusive flux at the bottom is hardcoded into the function LMAHeureux
-AragoniteSurface = lambda time = None: CA0
-CalciteSurface = lambda time = None: CC0
-CaSurface = lambda time = None: cCa0
-CO3Surface = lambda time = None: cCO30
-PorSurface = lambda time = None: Phi0
-## options
-options = odeset('MaxStep',0.01,'RelTol',1e-10,'AbsTol',1e-10)
-## run solver
-sol = LMAHeureuxPorosityDiffV2(AragoniteInitial,CalciteInitial,CaInitial,
-                               CO3Initial,PorInitial,AragoniteSurface,
-                               CalciteSurface,CaSurface,CO3Surface,
-                               PorSurface,times,depths,sedimentationrate,k1,k2,k3,k4,m1,m2,n1,n2,b,
-                               beta,rhos,rhow,rhos0,KA,KC,muA,D0Ca,PhiNR,PhiInfty,options,Phi0,DCa,
-                               DCO3,DeepLimit,ShallowLimit)
-## plot results
-#through time
-timeslice = 10
-print("type(sol) = {}".format(type(sol))) """
-
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-depths = CartesianGrid([[0, 502/Xstar]], [200], periodic=False)
+depths = CartesianGrid([[0, 502/Xstar]], [400], periodic=False)
 AragoniteSurface = ScalarField(depths, CAIni)
 CalciteSurface = ScalarField(depths, CCIni)
 CaSurface = ScalarField(depths, cCaIni)
@@ -107,25 +80,46 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             not_too_shallow, not_too_deep)             
 
 # Let us try to years 710 years, like Niklas.
-end_time = 1/Tstar
-number_of_steps = 1e3
+end_time = 10/Tstar
+number_of_steps = 1e4
 time_step = end_time/number_of_steps
-tspan = np.arange(0,end_time+time_step, time_step)
+# tspan = np.arange(0,end_time+time_step, time_step)
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
 # simulate the pde
 # tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
-storage = FileStorage("Results/LMAHeureuxPorosityDiff_" + datetime.now().\
+storage = FileStorage("../Results/LMAHeureuxPorosityDiff_" + datetime.now().\
                       strftime("%d_%m_%Y_%H_%M_%S") + ".npz")
 
-sol, info = eq.solve(state, t_range=tspan.max(), dt=time_step, method="explicit", \
+""" sol, info = eq.solve(state, t_range=tspan.max(), dt=time_step, method="explicit", \
                scheme = "rk", tracker=["progress", storage.tracker(0.01)], ret_info = True)
 
 print("Meta-information about the solution : {}".format(info))        
 
-sol.plot()
+sol.plot() """
+
+trackers = [
+    "progress",  # show progress bar during simulation
+    "steady_state",  # abort when steady state is reached
+    storage.tracker(interval=1),  # store data every simulation time unit
+    PlotTracker(show=True),  # show images during simulation
+    # print some output every 5 real seconds:
+    PrintTracker(interval=RealtimeIntervals(duration=5)),
+]
+
+
+solver1 = ScipySolver(eq, method = "LSODA", first_step = time_step)
+controller1 = Controller(solver1, t_range=(0, end_time), tracker=trackers)
+sol1 = controller1.run(state)
+sol1.label = "Scipy solver"
+print("Diagnostic information:")
+print(controller1.diagnostics)
+print()
+sol1.plot()
+
+
 # plt.plot(depths,sol(timeslice,:,5))
 ## Componentwise Plots
 # timeslice = 5

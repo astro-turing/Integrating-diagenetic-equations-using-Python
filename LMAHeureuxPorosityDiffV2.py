@@ -1,7 +1,7 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
 from sympy import evaluate
-np.seterr(all="raise")
+np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
     
 """ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
     CO3Initial = None,PorInitial = None, AragoniteSurface = None, CalciteSurface = None,CaSurface = None,

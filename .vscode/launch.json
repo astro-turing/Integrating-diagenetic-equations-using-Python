@@ -4,14 +4,23 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
         {
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": false
-        }
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Current file with external breakpoint",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "purpose": ["debug-test"],
+            "python": "/home/hanno/.local/share/virtualenvs/Start_15062022-cqtNuL3p/bin/python"
+        },
     ]
 }
