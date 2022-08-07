@@ -213,9 +213,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * \
         #      (np.amax(0,1 - cCa * cCO3) ** self.n2))
 
-        U = (self.presum + self.rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
+        U = self.presum + self.rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi)
         
-        W = (self.presum - self.rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi)))
+        W = self.presum - self.rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi))
         
         # Wslash = - self.rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
 

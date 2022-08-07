@@ -80,8 +80,8 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             not_too_shallow, not_too_deep)             
 
 # Let us try to years 710 years, like Niklas.
-end_time = 10/Tstar
-number_of_steps = 1e4
+end_time = 1/Tstar
+number_of_steps = 1e3
 time_step = end_time/number_of_steps
 # tspan = np.arange(0,end_time+time_step, time_step)
 
@@ -110,14 +110,16 @@ trackers = [
 ]
 
 
-solver1 = ScipySolver(eq, method = "LSODA", first_step = time_step)
-controller1 = Controller(solver1, t_range=(0, end_time), tracker=trackers)
-sol1 = controller1.run(state)
-sol1.label = "Scipy solver"
+solver = ScipySolver(eq, method = "Radau", vectorized = True, \
+                     first_step = time_step)
+controller1 = Controller(solver, t_range = (0, end_time), tracker=trackers)
+sol = controller1.run(state)
+print()
+sol.label = "Scipy solver"
 print("Diagnostic information:")
 print(controller1.diagnostics)
-print()
-sol1.plot()
+
+sol.plot()
 
 
 # plt.plot(depths,sol(timeslice,:,5))

@@ -18,6 +18,7 @@ Here, :math:`D` is the diffusivity, :math:`\beta` the infection rate, and
 """
 
 from pde import FieldCollection, PDEBase, PlotTracker, ScalarField, UnitGrid
+from pde import Controller, ScipySolver
 
 
 class SIRPDE(PDEBase):
@@ -64,4 +65,7 @@ state = eq.get_state(s, i)
 
 # simulate the pde
 tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1})
-sol = eq.solve(state, t_range=50, dt=1e-2, tracker=["progress", tracker])
+# sol = eq.solve(state, t_range=50, dt=1e-2, tracker=["progress", tracker])
+solver = ScipySolver(eq, method = "Radau", vectorized = True)
+controller = Controller(solver, t_range=50, tracker=["progress", tracker])
+sol = controller.run(state)
