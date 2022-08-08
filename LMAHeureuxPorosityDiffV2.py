@@ -1,6 +1,6 @@
 import numpy as np
-from pde import FieldCollection, PDEBase, ScalarField
-from sympy import evaluate
+from pde import FieldCollection, PDEBase
+from pde.tools.numba import jit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
     
 """ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
@@ -213,9 +213,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * \
         #      (np.amax(0,1 - cCa * cCO3) ** self.n2))
 
-        U = self.presum + self.rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi)
+        F = 1 - np.exp(10 - 10 / Phi)
+
+        U = self.presum + self.rhorat * Phi ** 3 * F / (1 - Phi)
         
-        W = self.presum - self.rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi))
+        W = self.presum - self.rhorat * Phi ** 2 * F
         
         # Wslash = - self.rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
 
@@ -234,8 +236,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
                    -W * dcCO3_dx + self.Da * (1 - Phi) * (self.delta - cCO3) * \
                    (coA - self.lambda_ * coC)/Phi
 
-        F = 1 - np.exp(10 - 10 / Phi)
-
         dPhi = self.auxcon * F * (Phi ** 3) / (1 - Phi)
 
         # dPhi_dx = Phi.gradient(self.bc_Phi)[0]
@@ -253,3 +253,119 @@ class LMAHeureuxPorosityDiff(PDEBase):
                   + self.Da * (1 - Phi) * (coA - self.lambda_ * coC)
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])
+
+    def _make_pde_rhs_numba(self, state):
+        """ the numba-accelerated evolution equation """
+        # make attributes locally available
+        KRat = self.KRat
+        m1 = self.m1
+        m2  = self.m2
+        n1 = self.n1
+        n2 = self.n2
+        nu1 = self.nu1
+        nu2 = self.nu2
+        not_too_deep = self.not_too_deep.data
+        not_too_shallow = self.not_too_shallow.data
+        presum = self.presum
+        rhorat= self.rhorat
+        lambda_ = self.lambda_
+        Da = self.Da
+        dCa = self.dCa
+        dCO3 = self.dCO3
+        delta = self.delta
+        auxcon = self.auxcon
+
+        gradient_CA = state.grid.make_operator("gradient", bc=self.bc_CA)
+        gradient_CC = state.grid.make_operator("gradient", bc=self.bc_CC)
+        gradient_cCa = state.grid.make_operator("gradient", bc=self.bc_cCa)
+        gradient_cCO3 = state.grid.make_operator("gradient", bc=self.bc_cCO3)
+        gradient_Phi = state.grid.make_operator("gradient", bc=self.bc_Phi)
+        laplace_Phi = state.grid.make_operator("laplace", bc=self.bc_Phi)
+
+        @jit
+        def pde_rhs(state_data, t=0):
+            """ compiled helper function evaluating right hand side """
+            CA = state_data[0]
+            CA_grad = gradient_CA(CA)[0]
+            CC = state_data[1]
+            CC_grad = gradient_CC(CC)[0]
+            cCa = state_data[2]
+            cCa_grad = gradient_cCa(cCa)[0]
+            cCO3 = state_data[3]
+            cCO3_grad = gradient_cCO3(cCO3)[0]
+            Phi = state_data[4]
+            Phi_laplace = laplace_Phi(Phi)
+
+            helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad)[0]
+            helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad)[0]
+
+            rate = np.empty_like(state_data)
+
+            # state_data.size should be the same as len(CA) or len(CC), check this.
+            # So the number of depths, really.
+            no_depths = state_data[0].size
+
+            two_factors = np.empty(no_depths)
+            two_factors_upp_lim = np.empty(no_depths)
+            two_factors_low_lim = np.empty(no_depths)
+            three_factors = np.empty(no_depths)
+            three_factors_upp_lim = np.empty(no_depths)
+            three_factors_low_lim = np.empty(no_depths)
+            coA = np.empty(no_depths)
+            coC = np.empty(no_depths)
+            U = np.empty(no_depths)
+            W = np.empty(no_depths)
+            F = np.empty(no_depths)
+
+            for i in range(no_depths):
+                F[i] = 1 - np.exp(10 - 10 / Phi[i])
+
+                U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
+        
+                W[i] = presum - rhorat * Phi[i] ** 2 * F[i]
+
+            helper_Phi_grad = gradient_Phi(W * Phi)[0]                        
+
+            dPhi = np.empty(no_depths)
+
+            for i in range(no_depths):
+                two_factors[i] = cCa[i] * cCO3[i]
+                two_factors_upp_lim[i] = min(two_factors[i],1)
+                two_factors_low_lim[i] = max(two_factors[i],1)
+                three_factors[i] = two_factors[i] * KRat
+                three_factors_upp_lim[i] = min(three_factors[i],1)
+                three_factors_low_lim[i] = max(three_factors[i],1)
+
+                coA[i] = CA[i] * (((1 - three_factors_upp_lim[i]) ** m2) * \
+                    (not_too_deep[i] * not_too_shallow[i]) - nu1 * \
+                    (three_factors_low_lim[i] - 1) ** m1)
+
+                coC[i] = CC[i] * (((two_factors_low_lim[i] - 1) ** n1) - nu2 * \
+                    (1 - two_factors_upp_lim[i]) ** n2)
+                
+                # This is dCA_dt
+                rate[0][i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) * coA[i] + \
+                             lambda_ * CA[i] * coC[i])
+
+                # This is dCC_dt
+                rate[1][i] = - U[i] * CC_grad[i] + Da * (lambda_ * (1 - CC[i]) * \
+                             coC[i] + CC[i] * coA[i])
+
+                # This is dcCa_dt
+                rate[2][i] =  helper_cCa_grad[i]/Phi[i] -W[i] * cCa_grad[i] \
+                              + Da * (1 - Phi[i]) * (delta - cCa[i]) * \
+                              (coA[i] - lambda_ * coC[i])/Phi[i]
+
+                # This is dcCO3_dt
+                rate[3][i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * cCO3_grad[i] \
+                              + Da * (1 - Phi[i]) * (delta - cCO3[i]) * \
+                              (coA[i] - lambda_ * coC[i])/Phi[i]
+
+                dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / (1 - Phi[i])        
+
+                # This is dPhi_dt
+                rate[4][i] = - helper_Phi_grad[i] + dPhi[i] * Phi_laplace[i] \
+                             + Da * (1 - Phi[i]) * (coA[i] - lambda_ * coC[i])
+            return rate
+
+        return pde_rhs   

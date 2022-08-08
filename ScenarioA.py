@@ -80,8 +80,8 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             not_too_shallow, not_too_deep)             
 
 # Let us try to years 710 years, like Niklas.
-end_time = 1/Tstar
-number_of_steps = 1e3
+end_time = 100/Tstar
+number_of_steps = 1e5
 time_step = end_time/number_of_steps
 # tspan = np.arange(0,end_time+time_step, time_step)
 
@@ -110,7 +110,7 @@ trackers = [
 ]
 
 
-solver = ScipySolver(eq, method = "Radau", vectorized = True, \
+solver = ScipySolver(eq, method = "RK45", vectorized = False, backend="numba",\
                      first_step = time_step)
 controller1 = Controller(solver, t_range = (0, end_time), tracker=trackers)
 sol = controller1.run(state)
