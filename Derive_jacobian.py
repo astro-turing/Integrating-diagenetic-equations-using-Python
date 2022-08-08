@@ -1,4 +1,4 @@
-from sympy import symbols, exp, Matrix
+from sympy import symbols, exp, Matrix, Max
 
 from sympy.abc import x
 
@@ -14,9 +14,10 @@ two_factors = cCa * cCO3
 
 three_factors = two_factors * KRat
 
-coA = CA * ((1 - three_factors) ** m2) * not_too_deep * not_too_shallow - nu1 * (three_factors - 1) ** m1
+coA = CA * ((Max(1 - three_factors, 0)) ** m2) * not_too_deep * not_too_shallow - nu1 * \
+      (Max(three_factors - 1, 0)) ** m1
 
-coC = CC * (((two_factors - 1) ** n1) - nu2 * (1 - two_factors) ** n2)
+coC = CC * (((Max(two_factors - 1, 0)) ** n1) - nu2 * (Max(1 - two_factors, 0)) ** n2)
 
 U = presum + rhorat * Phi ** 3 * (1 - exp(10 - 10 / Phi)) / (1 - Phi)
 
@@ -48,10 +49,13 @@ f = Matrix([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])
 y = Matrix([CA, CC, cCa, cCO3, Phi])
 
 jacob = f.jacobian(y)
-
-print(len(jacob))
+print()
+print("The Jacobian has {} elements".format(len(jacob)))
+print()
 
 for index in range(len(jacob)):
+    print()
+    print("Index = {}".format(index))
     print(jacob[index])
 
 """ for row in range(5):
