@@ -5,8 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
-from pde import CartesianGrid, ScalarField, FileStorage, ScipySolver
+from pde import CartesianGrid, ScalarField, FileStorage
 from pde import Controller, PlotTracker, PrintTracker, RealtimeIntervals
+from pde import ScipySolver, ExplicitSolver
 
 
 Scenario = 'A'
@@ -81,7 +82,7 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
 
 # Let us try to years 710 years, like Niklas.
 end_time = 100/Tstar
-number_of_steps = 1e5
+number_of_steps = 1e3
 time_step = end_time/number_of_steps
 # tspan = np.arange(0,end_time+time_step, time_step)
 
@@ -110,12 +111,13 @@ trackers = [
 ]
 
 
-solver = ScipySolver(eq, method = "RK45", vectorized = False, backend="numba",\
-                     first_step = time_step)
+""" solver = ScipySolver(eq, method = "Radau", vectorized = False, backend="numba",\
+                     first_step = time_step) """
+solver = ExplicitSolver(eq, scheme="rk", adaptive=True, backend="numba", tolerance=1e-2)   
 controller1 = Controller(solver, t_range = (0, end_time), tracker=trackers)
-sol = controller1.run(state)
+sol = controller1.run(state, dt = time_step)
 print()
-sol.label = "Scipy solver"
+sol.label = "Explicit solver"
 print("Diagnostic information:")
 print(controller1.diagnostics)
 
