@@ -1,5 +1,5 @@
 import numpy as np
-from pde import FieldCollection, PDEBase
+from pde import FieldCollection, PDEBase, ScalarField, FieldBase
 from pde.tools.numba import jit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
     
@@ -110,17 +110,11 @@ np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
 class LMAHeureuxPorosityDiff(PDEBase):
     """SIR-model with diffusive mobility"""
 
-    def __init__(self, AragoniteSurface, CalciteSurface, CaSurface, 
-                CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, Phi0, 
-                sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, 
-                n2, b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, 
-                PhiInfty, DCa, DCO3, not_too_shallow, not_too_deep):
-
-        self.AragoniteSurface = AragoniteSurface
-        self.CalciteSurface = CalciteSurface
-        self.CaSurface = CaSurface
-        self.CO3Surface = CO3Surface
-        self.PorSurface = PorSurface
+    def __init__(self, depths, CA0, CC0, cCa0, cCO30, Phi0, sedimentationrate, 
+                 Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, n2, b, beta, rhos, 
+                 rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3,
+                 not_too_shallow, not_too_deep):  
+        self.depths = depths    
         self.bc_CA = [{"value": CA0}, {"curvature" : 0}]
         self.bc_CC = [{"value": CC0}, {"curvature": 0}]
         self.bc_cCa = [{"value": cCa0}, {"derivative": 0}]
@@ -154,9 +148,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.Phi0 = Phi0
         self.DCa = DCa
         self.DCO3 = DCO3
-        self.not_too_shallow = not_too_shallow
-        self.not_too_deep = not_too_deep
-
         self.g = 100 * 9.81
         self.dCa = self.DCa / self.D0Ca
         self.dCO3 = self.DCO3 / self.D0Ca
@@ -170,7 +161,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.rhorat = (self.rhos / self.rhow - 1) * self.beta / \
                  self.sedimentationrate
         self.presum = 1 - self.rhorat0 * self.Phi0 ** 3 * \
-                 (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)        
+                 (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)  
+        self.not_too_shallow = not_too_shallow
+        self.not_too_deep = not_too_deep      
 
     def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
@@ -184,8 +177,15 @@ class LMAHeureuxPorosityDiff(PDEBase):
         return FieldCollection([AragoniteSurface, CalciteSurface, CaSurface, 
                                 CO3Surface, PorSurface])
 
-    def evolution_rate(self, state, t=0):
-        CA, CC, cCa, cCO3, Phi = state   
+    def evolution_rate(self, state: FieldBase, t: float = 0) -> FieldBase:
+        return super().evolution_rate(state, t)                            
+
+    def fun(self, t, y):
+        CA = ScalarField(self.depths, y[0])
+        CC = ScalarField(self.depths, y[1])
+        cCa = ScalarField(self.depths, y[2])
+        cCO3 = ScalarField(self.depths, y[3])
+        Phi = ScalarField(self.depths, y[4])
 
         # dPhislash = (self.auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
         #            (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))    
@@ -252,7 +252,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
                   + dPhi * Phi.laplace(self.bc_Phi) \
                   + self.Da * (1 - Phi) * (coA - self.lambda_ * coC)
 
-        return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])
+        return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data
 
     def _make_pde_rhs_numba(self, state):
         """ the numba-accelerated evolution equation """

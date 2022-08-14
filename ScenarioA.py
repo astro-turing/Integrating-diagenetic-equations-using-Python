@@ -7,8 +7,7 @@ from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
 from pde import CartesianGrid, ScalarField, FileStorage
 from pde import Controller, PlotTracker, PrintTracker, RealtimeIntervals
-from pde import ScipySolver, ExplicitSolver
-
+from scipy.integrate import solve_ivp
 
 Scenario = 'A'
 CA0 = 0.6
@@ -58,72 +57,55 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-depths = CartesianGrid([[0, 502/Xstar]], [400], periodic=False)
-AragoniteSurface = ScalarField(depths, CAIni)
-CalciteSurface = ScalarField(depths, CCIni)
-CaSurface = ScalarField(depths, cCaIni)
-CO3Surface = ScalarField(depths, cCO3Ini)
-PorSurface = ScalarField(depths, PhiIni)
+Depths = CartesianGrid([[0, 502/Xstar]], [400], periodic=False)
+AragoniteSurface = ScalarField(Depths, CAIni)
+CalciteSurface = ScalarField(Depths, CCIni)
+CaSurface = ScalarField(Depths, cCaIni)
+CO3Surface = ScalarField(Depths, cCO3Ini)
+PorSurface = ScalarField(Depths, PhiIni) 
 
 # I need those two fields for computing coA, which is rather involved.
 # There may be a simpler way of selecting these depths, but I haven't
 # found one yet. For now these two Heaviside step functions.
-not_too_shallow = ScalarField.from_expression(depths, 
+not_too_shallow = ScalarField.from_expression(Depths, 
                   "heaviside(x-{}, 0)".format(ShallowLimit/Xstar))
-not_too_deep = ScalarField.from_expression(depths, 
-               "heaviside({}-x, 0)".format(DeepLimit/Xstar))    
+not_too_deep = ScalarField.from_expression(Depths, 
+               "heaviside({}-x, 0)".format(DeepLimit/Xstar)) 
 
-eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface, 
-                            CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, 
-                            Phi0, sedimentationrate, Xstar, Tstar, k1, k2, 
-                            k3, k4, m1, m2, n1, n2, b, beta, rhos, rhow, rhos0, 
-                            KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
-                            not_too_shallow, not_too_deep)             
+eq = LMAHeureuxPorosityDiff(Depths, CA0, CC0, cCa0, cCO30, Phi0, 
+                            sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, 
+                            m1, m2, n1, n2, b, beta, rhos, rhow, rhos0, KA, KC, 
+                            muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
+                            not_too_shallow, not_too_deep)     
+
+depths = ScalarField.from_expression(Depths, "x").data                                    
 
 # Let us try to years 710 years, like Niklas.
 end_time = 100/Tstar
-number_of_steps = 1e3
+number_of_steps = 1e4
 time_step = end_time/number_of_steps
-# tspan = np.arange(0,end_time+time_step, time_step)
+t_eval = np.linspace(0,end_time, num = int(number_of_steps))
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
-# simulate the pde
-# tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
-storage = FileStorage("../Results/LMAHeureuxPorosityDiff_" + datetime.now().\
-                      strftime("%d_%m_%Y_%H_%M_%S") + ".npz")
+y0 = state.data.flat                
 
-""" sol, info = eq.solve(state, t_range=tspan.max(), dt=time_step, method="explicit", \
-               scheme = "rk", tracker=["progress", storage.tracker(0.01)], ret_info = True)
+sol = solve_ivp(eq.fun, (0, end_time), y0, t_eval = t_eval, vectorized = True,
+                first_step = time_step)
 
-print("Meta-information about the solution : {}".format(info))        
-
-sol.plot() """
-
-trackers = [
-    "progress",  # show progress bar during simulation
-    "steady_state",  # abort when steady state is reached
-    storage.tracker(interval=1),  # store data every simulation time unit
-    PlotTracker(show=True),  # show images during simulation
-    # print some output every 5 real seconds:
-    PrintTracker(interval=RealtimeIntervals(duration=5)),
-]
-
-
-""" solver = ScipySolver(eq, method = "Radau", vectorized = False, backend="numba",\
-                     first_step = time_step) """
-solver = ExplicitSolver(eq, scheme="rk", adaptive=True, backend="numba", tolerance=1e-2)   
-controller1 = Controller(solver, t_range = (0, end_time), tracker=trackers)
-sol = controller1.run(state, dt = time_step)
+""" print("sol.status = {0}, sol.success =  {1}".format(sol.status, sol.success))
 print()
-sol.label = "Explicit solver"
-print("Diagnostic information:")
-print(controller1.diagnostics)
+print("sol.t = {0}, sol.y =  {1}".format(sol.t, sol.y)) """
 
-sol.plot()
+fig, (ax0, ax1, ax2, ax3, ax4) =plt.subplots(1, 5)
+ax0.plot(depths, (sol.y)[0: 400, -1])
+ax1.plot(depths, (sol.y)[400:800, -1])
+ax2.plot(depths, (sol.y)[800:1200, -1])
+ax3.plot(depths, (sol.y)[1200:1600, -1])
+ax4.plot(depths, (sol.y)[1600:2000, -1])
 
-
+fig.show()
 # plt.plot(depths,sol(timeslice,:,5))
 ## Componentwise Plots
 # timeslice = 5
