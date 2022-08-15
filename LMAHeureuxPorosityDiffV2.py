@@ -255,8 +255,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data.ravel()
 
-    def _make_pde_rhs_numba(self, state):
-        """ the numba-accelerated evolution equation """
+    def fun_numba(self, t, y):
+        """ the numba-accelerated evolution equation """      
+
         # make attributes locally available
         KRat = self.KRat
         m1 = self.m1
@@ -275,36 +276,47 @@ class LMAHeureuxPorosityDiff(PDEBase):
         dCO3 = self.dCO3
         delta = self.delta
         auxcon = self.auxcon
+        CA_sl= self.slices_for_all_fields[0]
+        CC_sl = self.slices_for_all_fields[1]
+        cCa_sl = self.slices_for_all_fields[2]
+        cCO3_sl = self.slices_for_all_fields[3]
+        Phi_sl = self.slices_for_all_fields[4]
 
-        gradient_CA = state.grid.make_operator("gradient", bc=self.bc_CA)
-        gradient_CC = state.grid.make_operator("gradient", bc=self.bc_CC)
-        gradient_cCa = state.grid.make_operator("gradient", bc=self.bc_cCa)
-        gradient_cCO3 = state.grid.make_operator("gradient", bc=self.bc_cCO3)
-        gradient_Phi = state.grid.make_operator("gradient", bc=self.bc_Phi)
-        laplace_Phi = state.grid.make_operator("laplace", bc=self.bc_Phi)
+        CA = ScalarField(self.Depths, y[CA_sl])
+        CC = ScalarField(self.Depths, y[CC_sl])
+        cCa = ScalarField(self.Depths, y[cCa_sl])
+        cCO3 = ScalarField(self.Depths, y[cCO3_sl])
+        Phi = ScalarField(self.Depths, y[Phi_sl])          
+
+        gradient_CA = CA.grid.make_operator("gradient", bc=self.bc_CA)
+        gradient_CC = CC.grid.make_operator("gradient", bc=self.bc_CC)
+        gradient_cCa = cCa.grid.make_operator("gradient", bc=self.bc_cCa)
+        gradient_cCO3 = cCO3.grid.make_operator("gradient", bc=self.bc_cCO3)
+        gradient_Phi = Phi.grid.make_operator("gradient", bc=self.bc_Phi)
+        laplace_Phi = Phi.grid.make_operator("laplace", bc=self.bc_Phi)
 
         @jit
-        def pde_rhs(state_data, t=0):
+        def pde_rhs(y, t=0):
             """ compiled helper function evaluating right hand side """
-            CA = state_data[0]
+            CA = y[CA_sl]
             CA_grad = gradient_CA(CA)[0]
-            CC = state_data[1]
+            CC = y[CC_sl]
             CC_grad = gradient_CC(CC)[0]
-            cCa = state_data[2]
+            cCa = y[cCa_sl]
             cCa_grad = gradient_cCa(cCa)[0]
-            cCO3 = state_data[3]
+            cCO3 = y[cCO3_sl]
             cCO3_grad = gradient_cCO3(cCO3)[0]
-            Phi = state_data[4]
+            Phi = y[Phi_sl]
             Phi_laplace = laplace_Phi(Phi)
 
             helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad)[0]
             helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad)[0]
 
-            rate = np.empty_like(state_data)
+            rate = np.empty_like(y)
 
             # state_data.size should be the same as len(CA) or len(CC), check this.
             # So the number of depths, really.
-            no_depths = state_data[0].size
+            no_depths = CA.size
 
             two_factors = np.empty(no_depths)
             two_factors_upp_lim = np.empty(no_depths)
@@ -345,28 +357,28 @@ class LMAHeureuxPorosityDiff(PDEBase):
                     (1 - two_factors_upp_lim[i]) ** n2)
                 
                 # This is dCA_dt
-                rate[0][i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) * coA[i] + \
+                rate[CA_sl] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) * coA[i] + \
                              lambda_ * CA[i] * coC[i])
 
                 # This is dCC_dt
-                rate[1][i] = - U[i] * CC_grad[i] + Da * (lambda_ * (1 - CC[i]) * \
+                rate[CC_sl] = - U[i] * CC_grad[i] + Da * (lambda_ * (1 - CC[i]) * \
                              coC[i] + CC[i] * coA[i])
 
                 # This is dcCa_dt
-                rate[2][i] =  helper_cCa_grad[i]/Phi[i] -W[i] * cCa_grad[i] \
+                rate[cCa_sl] =  helper_cCa_grad[i]/Phi[i] -W[i] * cCa_grad[i] \
                               + Da * (1 - Phi[i]) * (delta - cCa[i]) * \
                               (coA[i] - lambda_ * coC[i])/Phi[i]
 
                 # This is dcCO3_dt
-                rate[3][i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * cCO3_grad[i] \
+                rate[cCO3_sl] =  helper_cCO3_grad[i]/Phi[i] -W[i] * cCO3_grad[i] \
                               + Da * (1 - Phi[i]) * (delta - cCO3[i]) * \
                               (coA[i] - lambda_ * coC[i])/Phi[i]
 
                 dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / (1 - Phi[i])        
 
                 # This is dPhi_dt
-                rate[4][i] = - helper_Phi_grad[i] + dPhi[i] * Phi_laplace[i] \
+                rate[Phi_sl] = - helper_Phi_grad[i] + dPhi[i] * Phi_laplace[i] \
                              + Da * (1 - Phi[i]) * (coA[i] - lambda_ * coC[i])
             return rate
 
-        return pde_rhs   
+        return pde_rhs(y)   

@@ -1,13 +1,14 @@
 # Last modified by Niklas Hohmann (n.hohmann@uw.edu.pl) Oct 2021
 ## Parameters for Scenario A
 #Taken from table 1 (p. 7)
+from tracemalloc import start
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
-from pde import CartesianGrid, ScalarField, FileStorage
-from pde import Controller, PlotTracker, PrintTracker, RealtimeIntervals
+from pde import CartesianGrid, ScalarField
 from scipy.integrate import solve_ivp
+import time
 
 Scenario = 'A'
 CA0 = 0.6
@@ -99,8 +100,12 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
 
 y0 = state.data.ravel()               
 
-sol = solve_ivp(eq.fun, (0, end_time), y0, method="Radau", vectorized = False,
+start_computing = time.time()
+sol = solve_ivp(eq.fun_numba, (0, end_time), y0, method="Radau", vectorized = False,
                 first_step = time_step)
+end_computing = time.time()
+
+print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
 
 """ print("sol.status = {0}, sol.success =  {1}".format(sol.status, sol.success))
 print()
