@@ -110,11 +110,12 @@ np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
 class LMAHeureuxPorosityDiff(PDEBase):
     """SIR-model with diffusive mobility"""
 
-    def __init__(self, depths, CA0, CC0, cCa0, cCO30, Phi0, sedimentationrate, 
-                 Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, n2, b, beta, rhos, 
-                 rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3,
-                 not_too_shallow, not_too_deep):  
-        self.depths = depths    
+    def __init__(self, Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30, Phi0, 
+                sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, n2, 
+                b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, PhiInfty, 
+                DCa, DCO3, not_too_shallow, not_too_deep):  
+        self.Depths = Depths    
+        self.slices_for_all_fields = slices_for_all_fields
         self.bc_CA = [{"value": CA0}, {"curvature" : 0}]
         self.bc_CC = [{"value": CC0}, {"curvature": 0}]
         self.bc_cCa = [{"value": cCa0}, {"derivative": 0}]
@@ -181,11 +182,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
         return super().evolution_rate(state, t)                            
 
     def fun(self, t, y):
-        CA = ScalarField(self.depths, y[0])
-        CC = ScalarField(self.depths, y[1])
-        cCa = ScalarField(self.depths, y[2])
-        cCO3 = ScalarField(self.depths, y[3])
-        Phi = ScalarField(self.depths, y[4])
+        CA = ScalarField(self.Depths, y[self.slices_for_all_fields[0]])
+        CC = ScalarField(self.Depths, y[self.slices_for_all_fields[1]])
+        cCa = ScalarField(self.Depths, y[self.slices_for_all_fields[2]])
+        cCO3 = ScalarField(self.Depths, y[self.slices_for_all_fields[3]])
+        Phi = ScalarField(self.Depths, y[self.slices_for_all_fields[4]])
 
         # dPhislash = (self.auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
         #            (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))    
@@ -252,7 +253,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
                   + dPhi * Phi.laplace(self.bc_Phi) \
                   + self.Da * (1 - Phi) * (coA - self.lambda_ * coC)
 
-        return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data
+        return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data.ravel()
 
     def _make_pde_rhs_numba(self, state):
         """ the numba-accelerated evolution equation """

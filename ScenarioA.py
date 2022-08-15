@@ -57,7 +57,12 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-Depths = CartesianGrid([[0, 502/Xstar]], [400], periodic=False)
+number_of_depths = 400
+
+max_depth = 500
+
+Depths = CartesianGrid([[0, max_depth * (1 + 0.5/number_of_depths)/Xstar]],\
+                        [number_of_depths], periodic=False)
 AragoniteSurface = ScalarField(Depths, CAIni)
 CalciteSurface = ScalarField(Depths, CCIni)
 CaSurface = ScalarField(Depths, cCaIni)
@@ -72,40 +77,50 @@ not_too_shallow = ScalarField.from_expression(Depths,
 not_too_deep = ScalarField.from_expression(Depths, 
                "heaviside({}-x, 0)".format(DeepLimit/Xstar)) 
 
-eq = LMAHeureuxPorosityDiff(Depths, CA0, CC0, cCa0, cCO30, Phi0, 
+slices_for_all_fields = [slice(i * number_of_depths, (i+1) * number_of_depths) \
+                         for i in range(5)]            
+
+eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30, Phi0, 
                             sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, 
                             m1, m2, n1, n2, b, beta, rhos, rhow, rhos0, KA, KC, 
                             muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
                             not_too_shallow, not_too_deep)     
 
-depths = ScalarField.from_expression(Depths, "x").data                                    
+depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
 
 # Let us try to years 710 years, like Niklas.
-end_time = 100/Tstar
+end_time = 10/Tstar
 number_of_steps = 1e4
 time_step = end_time/number_of_steps
-t_eval = np.linspace(0,end_time, num = int(number_of_steps))
+# t_eval = np.linspace(0,end_time, num = int(number_of_steps))
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
-y0 = state.data.flat                
+y0 = state.data.ravel()               
 
-sol = solve_ivp(eq.fun, (0, end_time), y0, t_eval = t_eval, vectorized = True,
+sol = solve_ivp(eq.fun, (0, end_time), y0, method="Radau", vectorized = False,
                 first_step = time_step)
 
 """ print("sol.status = {0}, sol.success =  {1}".format(sol.status, sol.success))
 print()
 print("sol.t = {0}, sol.y =  {1}".format(sol.t, sol.y)) """
 
-fig, (ax0, ax1, ax2, ax3, ax4) =plt.subplots(1, 5)
-ax0.plot(depths, (sol.y)[0: 400, -1])
-ax1.plot(depths, (sol.y)[400:800, -1])
-ax2.plot(depths, (sol.y)[800:1200, -1])
-ax3.plot(depths, (sol.y)[1200:1600, -1])
-ax4.plot(depths, (sol.y)[1600:2000, -1])
+fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(1, 5)
+ax0.plot(depths, (sol.y)[slices_for_all_fields[0], -1], label = "CA")
+ax0.legend(loc='upper right')
+ax1.plot(depths, (sol.y)[slices_for_all_fields[1], -1], label = "CC")
+ax1.legend(loc='upper right')
+ax2.plot(depths, (sol.y)[slices_for_all_fields[2], -1], label = "cCa")
+ax2.legend(loc='upper right')
+ax3.plot(depths, (sol.y)[slices_for_all_fields[3], -1], label = "cCO3")
+ax3.legend(loc='upper right')
+ax4.plot(depths, (sol.y)[slices_for_all_fields[4], -1], label = "Phi")
+ax4.legend(loc='upper right')
 
-fig.show()
+fig.tight_layout()
+fig.savefig("../Results/Final_compositions_and_concentrations_" + datetime.now().\
+                      strftime("%d_%m_%Y_%H_%M_%S") + ".png")
 # plt.plot(depths,sol(timeslice,:,5))
 ## Componentwise Plots
 # timeslice = 5
