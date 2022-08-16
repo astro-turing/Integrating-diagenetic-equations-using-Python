@@ -1,7 +1,8 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField, FieldBase
-from pde.tools.numba import jit
+from numba import jit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
+from typing import Callable
     
 """ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
     CO3Initial = None,PorInitial = None, AragoniteSurface = None, CalciteSurface = None,CaSurface = None,
@@ -295,8 +296,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         gradient_Phi = Phi.grid.make_operator("gradient", bc=self.bc_Phi)
         laplace_Phi = Phi.grid.make_operator("laplace", bc=self.bc_Phi)
 
-        @jit
-        def pde_rhs(y, t=0):
+        # @jit(nopython = True, nogil= True, cache = True, parallel = True)
+        def pde_rhs(y):
             """ compiled helper function evaluating right hand side """
             CA = y[CA_sl]
             CA_grad = gradient_CA(CA)[0]
@@ -381,4 +382,4 @@ class LMAHeureuxPorosityDiff(PDEBase):
                              + Da * (1 - Phi[i]) * (coA[i] - lambda_ * coC[i])
             return rate
 
-        return pde_rhs(y)   
+        return pde_rhs(y)
