@@ -7,8 +7,8 @@ from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
 from pde import CartesianGrid, ScalarField, FileStorage
 from pde import Controller, PlotTracker, PrintTracker, RealtimeIntervals
-from pde import ScipySolver, ExplicitSolver
-
+from pde import ScipySolver
+import time
 
 Scenario = 'A'
 CA0 = 0.6
@@ -81,8 +81,8 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             not_too_shallow, not_too_deep)             
 
 # Let us try to years 710 years, like Niklas.
-end_time = 100/Tstar
-number_of_steps = 1e3
+end_time = 10/Tstar
+number_of_steps = 1e4
 time_step = end_time/number_of_steps
 # tspan = np.arange(0,end_time+time_step, time_step)
 
@@ -111,12 +111,20 @@ trackers = [
 ]
 
 
-""" solver = ScipySolver(eq, method = "Radau", vectorized = False, backend="numba",\
-                     first_step = time_step) """
-solver = ExplicitSolver(eq, scheme="rk", adaptive=True, backend="numba", tolerance=1e-2)   
+solver = ScipySolver(eq, method = "Radau", vectorized = False, backend="numba",\
+                     first_step = time_step)
+""" solver = ExplicitSolver(eq, scheme="rk", adaptive=True, backend="numba", tolerance=1e-2)  """  
 controller1 = Controller(solver, t_range = (0, end_time), tracker=trackers)
+
+start_computing = time.time()
+
 sol = controller1.run(state, dt = time_step)
+
+end_computing = time.time()
+
+print("Time taken for running the controller is {0:.2f}s.".format(end_computing - start_computing))
 print()
+
 sol.label = "Explicit solver"
 print("Diagnostic information:")
 print(controller1.diagnostics)
