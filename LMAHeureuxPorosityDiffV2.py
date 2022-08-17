@@ -2,7 +2,6 @@ import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField, FieldBase
 from numba import jit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
-from typing import Callable
     
 """ def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
     CO3Initial = None,PorInitial = None, AragoniteSurface = None, CalciteSurface = None,CaSurface = None,
@@ -296,7 +295,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         gradient_Phi = Phi.grid.make_operator("gradient", bc=self.bc_Phi)
         laplace_Phi = Phi.grid.make_operator("laplace", bc=self.bc_Phi)
 
-        # @jit(nopython = True, nogil= True, cache = True, parallel = True)
+        @jit(nopython = True, nogil= True, cache = True, parallel = True)
         def pde_rhs(y):
             """ compiled helper function evaluating right hand side """
             CA = y[CA_sl]
@@ -358,28 +357,31 @@ class LMAHeureuxPorosityDiff(PDEBase):
                     (1 - two_factors_upp_lim[i]) ** n2)
                 
                 # This is dCA_dt
-                rate[CA_sl] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) * coA[i] + \
-                             lambda_ * CA[i] * coC[i])
+                rate[CA_sl.start + i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
+                                        * coA[i] + lambda_ * CA[i] * coC[i])
 
                 # This is dCC_dt
-                rate[CC_sl] = - U[i] * CC_grad[i] + Da * (lambda_ * (1 - CC[i]) * \
-                             coC[i] + CC[i] * coA[i])
+                rate[CC_sl.start + i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
+                                        (1 - CC[i]) * coC[i] + CC[i] * coA[i])
 
                 # This is dcCa_dt
-                rate[cCa_sl] =  helper_cCa_grad[i]/Phi[i] -W[i] * cCa_grad[i] \
-                              + Da * (1 - Phi[i]) * (delta - cCa[i]) * \
-                              (coA[i] - lambda_ * coC[i])/Phi[i]
+                rate[cCa_sl.start + i] =  helper_cCa_grad[i]/Phi[i] -W[i] * \
+                                          cCa_grad[i] + Da * (1 - Phi[i]) * \
+                                          (delta - cCa[i]) * (coA[i] - lambda_ \
+                                          * coC[i])/Phi[i]
 
                 # This is dcCO3_dt
-                rate[cCO3_sl] =  helper_cCO3_grad[i]/Phi[i] -W[i] * cCO3_grad[i] \
-                              + Da * (1 - Phi[i]) * (delta - cCO3[i]) * \
-                              (coA[i] - lambda_ * coC[i])/Phi[i]
+                rate[cCO3_sl.start + i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * \
+                                           cCO3_grad[i] + Da * (1 - Phi[i]) * \
+                                           (delta - cCO3[i]) * (coA[i] - \
+                                           lambda_ * coC[i])/Phi[i]
 
                 dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / (1 - Phi[i])        
 
                 # This is dPhi_dt
-                rate[Phi_sl] = - helper_Phi_grad[i] + dPhi[i] * Phi_laplace[i] \
-                             + Da * (1 - Phi[i]) * (coA[i] - lambda_ * coC[i])
+                rate[Phi_sl.start + i] = - helper_Phi_grad[i] + dPhi[i] * \
+                                         Phi_laplace[i] + Da * (1 - Phi[i]) \
+                                         * (coA[i] - lambda_ * coC[i])
             return rate
 
         return pde_rhs(y)
