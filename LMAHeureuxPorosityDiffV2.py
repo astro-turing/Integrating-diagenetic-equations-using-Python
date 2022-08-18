@@ -242,12 +242,16 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         dcCa_dx = cCa.gradient(self.bc_cCa)[0]
 
-        dcCa_dt = ((Phi * self.dCa * dcCa_dx).gradient(self.bc_cCa))/Phi -W * dcCa_dx \
+        # Implementing equation 6 from l'Heureux.
+        denominator = 1 - 2 * ScalarField(self.Depths, np.log(Phi.data))
+        # Implementing equation 6 from l'Heureux.
+        dcCa_dt = ((Phi * self.dCa * dcCa_dx/denominator).gradient(self.bc_cCa))/Phi -W * dcCa_dx \
                   + self.Da * (1 - Phi) * (self.delta - cCa) * (coA - self.lambda_ * coC)/Phi
 
         dcCO3_dx = cCO3.gradient(self.bc_cCO3)[0]
 
-        dcCO3_dt = (Phi * self.dCO3 * dcCO3_dx).gradient(self.bc_cCO3)/Phi \
+        # Implementing equation 6 from l'Heureux.
+        dcCO3_dt = (Phi * self.dCO3 * dcCO3_dx/denominator).gradient(self.bc_cCO3)/Phi \
                    -W * dcCO3_dx + self.Da * (1 - Phi) * (self.delta - cCO3) * \
                    (coA - self.lambda_ * coC)/Phi
 

@@ -58,7 +58,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 400
+number_of_depths = 200
 
 max_depth = 500
 
@@ -91,7 +91,7 @@ depths = ScalarField.from_expression(Depths, "x").data * Xstar
 
 # Let us try to reach 710 years, like Niklas.
 end_time = 10/Tstar
-number_of_steps = 1e4
+number_of_steps = 1e3
 time_step = end_time/number_of_steps
 # t_eval = np.linspace(0,end_time, num = int(number_of_steps))
 
@@ -101,7 +101,7 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
 y0 = state.data.ravel()               
 
 start_computing = time.time()
-sol = solve_ivp(eq.fun_numba, (0, end_time), y0, method="Radau", vectorized = False,
+sol = solve_ivp(eq.fun, (0, end_time), y0, method="Radau", vectorized = False,
                 first_step = time_step)
 end_computing = time.time()
 
