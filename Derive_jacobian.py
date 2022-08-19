@@ -1,6 +1,6 @@
-from sympy import symbols, exp, Matrix, Max
-
+from sympy import symbols, exp, Matrix, Max, log, pprint
 from sympy.abc import x
+from contextlib import redirect_stdout
 
 CA, CC, cCa, cCO3, Phi = symbols("CA CC cCa cCO3 Phi")
 
@@ -29,12 +29,14 @@ dCC_dt = - U * CC.diff(x) + Da * (lambda_ * (1 - CC) * coC + CC * coA)
 
 dcCa_dx = cCa.diff(x)
 
-dcCa_dt = ((Phi * dCa * dcCa_dx).diff(x))/Phi -W * dcCa_dx + \
+# Taking account of equation 6 from l'Heureux
+dcCa_dt = (((Phi * dCa * dcCa_dx)/(1 - 2 * log(Phi))).diff(x))/Phi -W * dcCa_dx + \
           + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC)/Phi
 
 dcCO3_dx = cCO3.diff(x)
 
-dcCO3_dt = (Phi * dCO3 * dcCO3_dx).diff(x)/Phi -W * dcCO3_dx + \
+# Taking account of equation 6 from l'Heureux
+dcCO3_dt = (((Phi * dCO3 * dcCO3_dx)/(1 - 2 * log(Phi))).diff(x))/Phi -W * dcCO3_dx + \
            Da * (1 - Phi) * (delta - cCO3) * (coA - lambda_ * coC)/Phi
 
 F = 1 - exp(10 - 10 / Phi)     
@@ -58,9 +60,14 @@ for index in range(len(jacob)):
     print("Index = {}".format(index))
     print(jacob[index])
 
-""" for row in range(5):
-    for column in range(5):
-        print(f[row*5+column]) """
+with open('Jacobian.txt', 'w') as f:
+    with redirect_stdout(f):
+        for index in range(len(jacob)):
+            print("\n")
+            print("Index = {}".format(index))
+            print("\n")
+            print(jacob[index])
+            print("\n")
 
 
 
