@@ -58,7 +58,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 200
+number_of_depths = 400
 
 max_depth = 500
 
@@ -101,8 +101,8 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
 y0 = state.data.ravel()               
 
 start_computing = time.time()
-sol = solve_ivp(eq.fun_numba, (0, end_time), y0, method="BDF", rtol=1e-6, vectorized = False,
-                first_step = time_step, jac_sparsity = eq.jacobian_sparsity())
+sol = solve_ivp(eq.fun_numba, (0, end_time), y0, method="BDF", vectorized = False,
+                first_step = time_step, jac = eq.jac)
 end_computing = time.time()
 
 print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))

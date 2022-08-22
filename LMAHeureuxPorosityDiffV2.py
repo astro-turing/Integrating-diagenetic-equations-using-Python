@@ -206,11 +206,12 @@ class LMAHeureuxPorosityDiff(PDEBase):
             # item[1] is a tuple of self.Depths.shape[0] row indices and
             # self.Depths.shape[0] column indices.
             # This loop fills the sparse matrix.
-            jacob_csr += csr_matrix((item[0], item[1]), shape = (n, n))
+            data, row_and_col = item
+            jacob_csr += csr_matrix((data, row_and_col), shape = (n, n))
 
         return jacob_csr
 
-    @jit(nopython = True, nogil= True, cache = True, parallel = True)
+    @jit(nopython = True, nogil= True, parallel = True)
     def pde_rhs(y, KRat, m1, m2, n1, n2, nu1, nu2, \
             not_too_deep, not_too_shallow, presum, rhorat, lambda_, Da, dCa, \
             dCO3, delta, auxcon, CA_sl, CC_sl, cCa_sl, cCO3_sl, Phi_sl, \
