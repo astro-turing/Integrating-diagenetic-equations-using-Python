@@ -90,7 +90,7 @@ eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30
 depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
 
 # Let us try to reach 710 years, like Niklas.
-end_time = 10/Tstar
+end_time = 100/Tstar
 number_of_steps = 1e3
 time_step = end_time/number_of_steps
 # t_eval = np.linspace(0,end_time, num = int(number_of_steps))
@@ -101,8 +101,8 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
 y0 = state.data.ravel()               
 
 start_computing = time.time()
-sol = solve_ivp(eq.fun, (0, end_time), y0, method="Radau", vectorized = False,
-                first_step = time_step)
+sol = solve_ivp(eq.fun_numba, (0, end_time), y0, method="BDF", rtol=1e-6, vectorized = False,
+                first_step = time_step, jac_sparsity = eq.jacobian_sparsity())
 end_computing = time.time()
 
 print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))

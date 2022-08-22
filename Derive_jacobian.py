@@ -1,3 +1,5 @@
+""" This derives a functional form of the Jacobian (25 elements) """
+
 from sympy import symbols, exp, Matrix, Max, log, pprint
 from sympy.abc import x
 from contextlib import redirect_stdout
@@ -14,10 +16,10 @@ two_factors = cCa * cCO3
 
 three_factors = two_factors * KRat
 
-coA = CA * ((Max(1 - three_factors, 0)) ** m2) * not_too_deep * not_too_shallow - nu1 * \
-      (Max(three_factors - 1, 0)) ** m1
+coA = CA * (Max(1 - three_factors, 0) ** m2 * not_too_deep * not_too_shallow - nu1 * \
+      Max(three_factors - 1, 0) ** m1)
 
-coC = CC * (((Max(two_factors - 1, 0)) ** n1) - nu2 * (Max(1 - two_factors, 0)) ** n2)
+coC = CC * (Max(two_factors - 1, 0) ** n1 - nu2 * (Max(1 - two_factors, 0)) ** n2)
 
 U = presum + rhorat * Phi ** 3 * (1 - exp(10 - 10 / Phi)) / (1 - Phi)
 
