@@ -2,7 +2,7 @@ import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField, FieldBase
 from numba import jit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
-from scipy.sparse import csr_matrix   
+from scipy.sparse import csr_matrix, find   
 from Compute_jacobian import Jacobian
 
 class LMAHeureuxPorosityDiff(PDEBase):
@@ -185,29 +185,47 @@ class LMAHeureuxPorosityDiff(PDEBase):
             no_depths = self.Depths.shape[0])
 
     def jac(self, t, y):
-        all_jac_values_rows_and_cols = Jacobian(y, self.KRat, self.m1, self.m2, \
+
+        CA = y[self.CA_sl]
+        CC = y[self.CC_sl]
+        cCa = y[self.cCa_sl]
+        cCO3 = y[self.cCO3_sl]
+        Phi = y[self.Phi_sl]  
+
+        jacob_csr = csr_matrix(Jacobian(CA, CC, cCa, cCO3, Phi, \
+            self.KRat, self.m1, self.m2, \
             self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
-            self.not_too_shallow, self.presum, self.rhorat, self.lambda_, \
-            self.Da, self.dCa, self.dCO3, self.delta, self.auxcon, self.CA_sl, \
-            self.CC_sl, self.cCa_sl, self.cCO3_sl, self.Phi_sl, \
-            no_depths = self.Depths.shape[0], no_fields = self.no_fields)
+            self.not_too_shallow, self.lambda_, \
+            self.Da, self.delta, \
+            no_depths = self.Depths.shape[0], no_fields = self.no_fields))
 
         # Check that we should have 5**2 sets of Jacobian values for 5 fields,
         # with each set comprised of no_depth numbers.
-        no_sets_of_jacobian_values = len(all_jac_values_rows_and_cols)
+        """     no_sets_of_jacobian_values = len(all_jac_values_rows_and_cols)
         assert no_sets_of_jacobian_values == self.no_fields ** 2
        
         no_depths = self.Depths.shape[0]
         n = self.no_fields * no_depths
         jacob_csr = csr_matrix((n, n))
  
-        for item in all_jac_values_rows_and_cols:
+        for item in all_jac_values_rows_and_cols: """
             # item[0] are the self.Depths.shape[0] Jacobian values.
             # item[1] is a tuple of self.Depths.shape[0] row indices and
             # self.Depths.shape[0] column indices.
             # This loop fills the sparse matrix.
-            data, row_and_col = item
-            jacob_csr += csr_matrix((data, row_and_col), shape = (n, n))
+        """     data, row_and_col = item
+            jacob_csr += csr_matrix((data, row_and_col), shape = (n, n)) """
+
+        # Check that the non-zero values in the Jacobian occur ath the same 
+        # indices as the Jacobian sparsity matrix.
+        # Perhaps we do not need this check for every computation of the
+        # Jacobian.
+        """ sparsity_matrix = self.jacobian_sparsity()
+        nonzero_sparsity = find(sparsity_matrix)
+        nonzero_jacobian = find(jacob_csr) """
+        print("Jacobian matrix evaluated")
+        # assert np.allclose(nonzero_sparsity[0], nonzero_jacobian[0]) 
+        # assert np.allclose(nonzero_sparsity[1], nonzero_jacobian[1])       
 
         return jacob_csr
 
@@ -229,8 +247,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
         Phi = y[Phi_sl]
         Phi_laplace = laplace_Phi(Phi)
 
-        helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad)[0]
-        helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad)[0]
+        # Implementing equation 6 from l'Heureux.
+        denominator = 1 - 2 * np.log(Phi)
+        helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad/denominator)[0]
+        helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad/denominator)[0]
 
         rate = np.empty_like(y)
 
