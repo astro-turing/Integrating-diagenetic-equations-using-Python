@@ -1,6 +1,6 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField, FieldBase
-from numba import jit
+from numba import jit, prange
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
 from scipy.sparse import csr_matrix, find   
 from Compute_jacobian import Jacobian
@@ -175,7 +175,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
     def fun_numba(self, t, y):
         """ the numba-accelerated evolution equation """      
 
-        return LMAHeureuxPorosityDiff.pde_rhs(y, self.KRat, self.m1, self.m2, \
+        rhs = LMAHeureuxPorosityDiff.pde_rhs(y, self.KRat, self.m1, self.m2, \
             self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
             self.not_too_shallow, self.presum, self.rhorat, self.lambda_, \
             self.Da, self.dCa, self.dCO3, self.delta, self.auxcon, self.CA_sl, \
@@ -183,6 +183,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
             self.gradient_CA, self.gradient_CC, self.gradient_cCa, \
             self.gradient_cCO3,self.gradient_Phi, self.laplace_Phi, \
             no_depths = self.Depths.shape[0])
+
+        print("Right-hand side evaluated")
+
+        return rhs
 
     def jac(self, t, y):
 
@@ -266,7 +270,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         W = np.empty(no_depths)
         F = np.empty(no_depths)
 
-        for i in range(no_depths):
+        for i in prange(no_depths):
             F[i] = 1 - np.exp(10 - 10 / Phi[i])
 
             U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
