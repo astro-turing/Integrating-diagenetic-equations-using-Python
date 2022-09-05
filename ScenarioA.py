@@ -101,8 +101,8 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
 y0 = state.data.ravel()               
 
 start_computing = time.time()
-sol = solve_ivp(eq.fun, (0, end_time), y0, atol = 1e-10, rtol = 1e-10, \
-                method="Radau", vectorized = False,\
+sol = solve_ivp(eq.fun_numba, (0, end_time), y0, atol = 1e-10, rtol = 1e-10, \
+                method="BDF", vectorized = False,\
                 first_step = time_step, jac = eq.jac)
 end_computing = time.time()
 
