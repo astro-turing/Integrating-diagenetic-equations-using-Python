@@ -52,7 +52,7 @@ def np_heaviside(x1, x2):
 
     return heaviside_impl
 
-@njit(nogil= True, parallel = True, cache=True)
+@njit(nogil= True, parallel = True, fastmath=True, cache = True)
 def Jacobian(CA, CC, cCa, cCO3, Phi, KRat, m1, m2, \
             n1, n2, nu1, nu2, not_too_deep, \
             not_too_shallow, lambda_, Da, delta, no_depths, no_fields):
@@ -288,8 +288,7 @@ def Jacobian(CA, CC, cCa, cCO3, Phi, KRat, m1, m2, \
                max_thr_f_m_one ** m1) - CC * lambda_ * \
                (-nu2 * max_one_m_two_f ** n2 + \
                max_two_f_m_one ** n1)) """
-        
-    # @njit(parallel=True, nogil=True, cache = True)
+
     def compute_all_Jacobian_elements():
         row_indices = np.arange(no_depths)
         col_indices = np.arange(no_depths)

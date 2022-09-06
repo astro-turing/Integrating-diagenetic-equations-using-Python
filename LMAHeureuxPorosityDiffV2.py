@@ -1,6 +1,6 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField, FieldBase
-from numba import jit, prange
+from numba import njit, prange
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
 from scipy.sparse import csr_matrix, find   
 from Compute_jacobian import Jacobian
@@ -237,7 +237,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return jacob_csr
 
-    @jit(nopython = True, nogil= True, parallel = True)
+    @njit(nogil = True, parallel = True, fastmath = True, cache = True)
     def pde_rhs(CA, CC, cCa, cCO3, Phi, KRat, m1, m2, n1, n2, nu1, nu2, \
             not_too_deep, not_too_shallow, presum, rhorat, lambda_, Da, dCa, \
             dCO3, delta, auxcon, gradient_CA, gradient_CC, gradient_cCa, \
