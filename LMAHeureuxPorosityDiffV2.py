@@ -173,18 +173,22 @@ class LMAHeureuxPorosityDiff(PDEBase):
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data.ravel()
 
     def fun_numba(self, t, y):
-        """ the numba-accelerated evolution equation """      
+        """ the numba-accelerated evolution equation """     
+        CA = y[self.CA_sl]
+        CC = y[self.CC_sl]
+        cCa = y[self.cCa_sl]
+        cCO3 = y[self.cCO3_sl]
+        Phi = y[self.Phi_sl]   
 
-        rhs = LMAHeureuxPorosityDiff.pde_rhs(y, self.KRat, self.m1, self.m2, \
-            self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
-            self.not_too_shallow, self.presum, self.rhorat, self.lambda_, \
-            self.Da, self.dCa, self.dCO3, self.delta, self.auxcon, self.CA_sl, \
-            self.CC_sl, self.cCa_sl, self.cCO3_sl, self.Phi_sl, \
+        rhs = LMAHeureuxPorosityDiff.pde_rhs(CA, CC, cCa, cCO3, Phi, self.KRat, \
+            self.m1, self.m2, self.n1, self.n2, self.nu1, self.nu2, \
+            self.not_too_deep, self.not_too_shallow, self.presum, self.rhorat, \
+            self.lambda_, self.Da, self.dCa, self.dCO3, self.delta, self.auxcon, \
             self.gradient_CA, self.gradient_CC, self.gradient_cCa, \
             self.gradient_cCO3,self.gradient_Phi, self.laplace_Phi, \
             no_depths = self.Depths.shape[0])
 
-        print("Right-hand side evaluated")
+        # print("Right-hand side evaluated")
 
         return rhs
 
@@ -227,28 +231,22 @@ class LMAHeureuxPorosityDiff(PDEBase):
         """ sparsity_matrix = self.jacobian_sparsity()
         nonzero_sparsity = find(sparsity_matrix)
         nonzero_jacobian = find(jacob_csr) """
-        print("Jacobian matrix evaluated")
+        # print("Jacobian matrix evaluated")
         # assert np.allclose(nonzero_sparsity[0], nonzero_jacobian[0]) 
         # assert np.allclose(nonzero_sparsity[1], nonzero_jacobian[1])       
 
         return jacob_csr
 
     @jit(nopython = True, nogil= True, parallel = True)
-    def pde_rhs(y, KRat, m1, m2, n1, n2, nu1, nu2, \
+    def pde_rhs(CA, CC, cCa, cCO3, Phi, KRat, m1, m2, n1, n2, nu1, nu2, \
             not_too_deep, not_too_shallow, presum, rhorat, lambda_, Da, dCa, \
-            dCO3, delta, auxcon, CA_sl, CC_sl, cCa_sl, cCO3_sl, Phi_sl, \
-            gradient_CA, gradient_CC, gradient_cCa, gradient_cCO3,\
-            gradient_Phi, laplace_Phi, no_depths):
+            dCO3, delta, auxcon, gradient_CA, gradient_CC, gradient_cCa, \
+            gradient_cCO3,gradient_Phi, laplace_Phi, no_depths):
         """ compiled helper function evaluating right hand side """
-        CA = y[CA_sl]
         CA_grad = gradient_CA(CA)[0]
-        CC = y[CC_sl]
         CC_grad = gradient_CC(CC)[0]
-        cCa = y[cCa_sl]
         cCa_grad = gradient_cCa(cCa)[0]
-        cCO3 = y[cCO3_sl]
         cCO3_grad = gradient_cCO3(cCO3)[0]
-        Phi = y[Phi_sl]
         Phi_laplace = laplace_Phi(Phi)
 
         # Implementing equation 6 from l'Heureux.
@@ -256,7 +254,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad/denominator)[0]
         helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad/denominator)[0]
 
-        rate = np.empty_like(y)
+        rate = np.empty(5 * no_depths)
 
         two_factors = np.empty(no_depths)
         two_factors_upp_lim = np.empty(no_depths)
@@ -281,7 +279,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         dPhi = np.empty(no_depths)
 
-        for i in range(no_depths):
+        for i in prange(no_depths):
             two_factors[i] = cCa[i] * cCO3[i]
             two_factors_upp_lim[i] = min(two_factors[i],1)
             two_factors_low_lim[i] = max(two_factors[i],1)
@@ -297,21 +295,21 @@ class LMAHeureuxPorosityDiff(PDEBase):
                 (1 - two_factors_upp_lim[i]) ** n2)
             
             # This is dCA_dt
-            rate[CA_sl.start + i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
+            rate[i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
                                     * coA[i] + lambda_ * CA[i] * coC[i])
 
             # This is dCC_dt
-            rate[CC_sl.start + i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
+            rate[no_depths + i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
                                     (1 - CC[i]) * coC[i] + CC[i] * coA[i])
 
             # This is dcCa_dt
-            rate[cCa_sl.start + i] =  helper_cCa_grad[i]/Phi[i] -W[i] * \
+            rate[2 * no_depths + i] =  helper_cCa_grad[i]/Phi[i] -W[i] * \
                                         cCa_grad[i] + Da * (1 - Phi[i]) * \
                                         (delta - cCa[i]) * (coA[i] - lambda_ \
                                         * coC[i])/Phi[i]
 
             # This is dcCO3_dt
-            rate[cCO3_sl.start + i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * \
+            rate[3 * no_depths + i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * \
                                         cCO3_grad[i] + Da * (1 - Phi[i]) * \
                                         (delta - cCO3[i]) * (coA[i] - \
                                         lambda_ * coC[i])/Phi[i]
@@ -319,7 +317,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / (1 - Phi[i])        
 
             # This is dPhi_dt
-            rate[Phi_sl.start + i] = - helper_Phi_grad[i] + dPhi[i] * \
+            rate[4 * no_depths + i] = - helper_Phi_grad[i] + dPhi[i] * \
                                         Phi_laplace[i] + Da * (1 - Phi[i]) \
                                         * (coA[i] - lambda_ * coC[i])
         return rate
