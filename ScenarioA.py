@@ -58,7 +58,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 2000
+number_of_depths = 500
 
 max_depth = 500
 
@@ -112,7 +112,7 @@ print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_compu
 print()
 print("sol.t = {0}, sol.y =  {1}".format(sol.t, sol.y)) """
 
-fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(1, 5)
+fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1, figsize = (5, 25))
 ax0.plot(depths, (sol.y)[slices_for_all_fields[0], -1], label = "CA")
 ax0.legend(loc='upper right')
 ax1.plot(depths, (sol.y)[slices_for_all_fields[1], -1], label = "CC")
