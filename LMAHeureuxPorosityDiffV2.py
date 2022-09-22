@@ -73,8 +73,12 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.gradient_CC = self.Depths.make_operator("gradient", bc=self.bc_CC)
         self.gradient_cCa = self.Depths.make_operator("gradient", \
             bc=self.bc_cCa)
+        self.laplace_cCa = self.Depths.make_operator("laplace", \
+            bc=self.bc_cCa) 
         self.gradient_cCO3 = self.Depths.make_operator("gradient", \
             bc=self.bc_cCO3)
+        self.laplace_cCO3 = self.Depths.make_operator("laplace", \
+            bc=self.bc_cCO3) 
         self.gradient_Phi = self.Depths.make_operator("gradient", \
             bc=self.bc_Phi)
         self.laplace_Phi = self.Depths.make_operator("laplace", bc=self.bc_Phi)        
@@ -178,8 +182,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         CC = y[self.CC_sl]
         cCa = y[self.cCa_sl]
         cCO3 = y[self.cCO3_sl]
-        # Set a limit on cCO3, which turns negative so quickly.
-        # cCO3 = np.fmax(cCO3, 0)
         Phi = y[self.Phi_sl]   
 
         rhs = LMAHeureuxPorosityDiff.pde_rhs(CA, CC, cCa, cCO3, Phi, self.KRat, \
@@ -187,7 +189,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
             self.not_too_deep, self.not_too_shallow, self.presum, self.rhorat, \
             self.lambda_, self.Da, self.dCa, self.dCO3, self.delta, self.auxcon, \
             self.gradient_CA, self.gradient_CC, self.gradient_cCa, \
-            self.gradient_cCO3,self.gradient_Phi, self.laplace_Phi, \
+            self.laplace_cCa, self.gradient_cCO3,self.laplace_cCO3, \
+            self.gradient_Phi, self.laplace_Phi, \
             no_depths = self.Depths.shape[0])
 
         # print("Right-hand side evaluated")
@@ -200,8 +203,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         CC = y[self.CC_sl]
         cCa = y[self.cCa_sl]
         cCO3 = y[self.cCO3_sl]
-        # Set a limit on cCO3, which turns negative so quickly.
-        # cCO3 = np.fmax(cCO3, 0)
         Phi = y[self.Phi_sl]  
 
         jacob_csr = csr_matrix(Jacobian(CA, CC, cCa, cCO3, Phi, \
@@ -241,22 +242,43 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return jacob_csr
 
-    @njit(nogil = True, parallel = True, fastmath = True, cache = True)
+    @njit(nogil = True, parallel = True, fastmath = True)
     def pde_rhs(CA, CC, cCa, cCO3, Phi, KRat, m1, m2, n1, n2, nu1, nu2, \
             not_too_deep, not_too_shallow, presum, rhorat, lambda_, Da, dCa, \
             dCO3, delta, auxcon, gradient_CA, gradient_CC, gradient_cCa, \
-            gradient_cCO3,gradient_Phi, laplace_Phi, no_depths):
+            laplace_cCa, gradient_cCO3, laplace_cCO3, gradient_Phi, \
+            laplace_Phi, no_depths):
         """ compiled helper function evaluating right hand side """
         CA_grad = gradient_CA(CA)[0]
         CC_grad = gradient_CC(CC)[0]
         cCa_grad = gradient_cCa(cCa)[0]
+        cCa_laplace = laplace_cCa(cCa)
         cCO3_grad = gradient_cCO3(cCO3)[0]
+        cCO3_laplace = laplace_cCO3(cCO3)
         Phi_laplace = laplace_Phi(Phi)
 
         # Implementing equation 6 from l'Heureux.
         denominator = 1 - 2 * np.log(Phi)
-        helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad/denominator)[0]
-        helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad/denominator)[0]
+        # helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad/denominator)[0]
+        # helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad/denominator)[0]
+
+        # The idea now is to replace the gradient of a gradient of cCa and cCO3
+        # with its Laplacian, to see if this leads to better numerical stability.
+        # To do so, we apply the chain rule to the second terms of equations
+        # 42 from l'Heureux.
+        # Now that I am implementing this, I notice that we used to have
+        # helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad/denominator)[0]
+        # helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad/denominator)[0]
+        # Actually, this does not propagate the boundary conditions for Phi in 
+        # the correct manner, because they are not applied here. 
+        # Applying the chain rule also gives us the opprtunity to apply
+        # boundary conditions for Phi in equations 42 from l'Heureux.
+        common_helper1 = Phi/denominator
+        common_helper2 = gradient_Phi(common_helper1)[0]
+        helper_cCa_grad = dCa * (common_helper2 * cCa_grad \
+                          + common_helper1 * cCa_laplace)
+        helper_cCO3_grad = dCO3 * (common_helper2 * cCO3_grad \
+                          + common_helper1 * cCO3_laplace)
 
         rate = np.empty(5 * no_depths)
 
@@ -316,11 +338,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
             rate[3 * no_depths + i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * \
                                         cCO3_grad[i] + Da * (1 - Phi[i]) * \
                                         (delta - cCO3[i]) * (coA[i] - \
-                                        lambda_ * coC[i])/Phi[i]
-            if cCO3[i]<0 and rate[3 * no_depths + i] < 0:
-                rate[3 * no_depths + i] *= -1
-            """             if cCO3[i] > 2 and rate[3 * no_depths + i] > 0:
-                rate[3 * no_depths + i] *= -1    """      
+                                        lambda_ * coC[i])/Phi[i]      
 
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / (1 - Phi[i])        
 
