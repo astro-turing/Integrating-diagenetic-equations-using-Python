@@ -90,7 +90,7 @@ eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30
 depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
 
 # Let us try to reach 710 years, like Niklas.
-end_time = 1/Tstar
+end_time = 10/Tstar
 number_of_steps = 1e4
 time_step = end_time/number_of_steps
 # t_eval = np.linspace(0,end_time, num = int(number_of_steps))

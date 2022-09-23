@@ -293,6 +293,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         U = np.empty(no_depths)
         W = np.empty(no_depths)
         F = np.empty(no_depths)
+        common_helper3 = np.empty(no_depths)
 
         for i in prange(no_depths):
             F[i] = 1 - np.exp(10 - 10 / Phi[i])
@@ -301,11 +302,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
     
             W[i] = presum - rhorat * Phi[i] ** 2 * F[i]
 
-        helper_Phi_grad = gradient_Phi(W * Phi)[0]                        
-
-        dPhi = np.empty(no_depths)
-
-        for i in prange(no_depths):
             two_factors[i] = cCa[i] * cCO3[i]
             two_factors_upp_lim[i] = min(two_factors[i],1)
             two_factors_low_lim[i] = max(two_factors[i],1)
@@ -318,8 +314,16 @@ class LMAHeureuxPorosityDiff(PDEBase):
                 (three_factors_low_lim[i] - 1) ** m1)
 
             coC[i] = CC[i] * (((two_factors_low_lim[i] - 1) ** n1) - nu2 * \
-                (1 - two_factors_upp_lim[i]) ** n2)
-            
+                (1 - two_factors_upp_lim[i]) ** n2)         
+
+            common_helper3[i] = coA[i] - lambda_* coC[i]
+               
+
+        helper_Phi_grad = gradient_Phi(W * Phi)[0]                        
+
+        dPhi = np.empty(no_depths)
+
+        for i in prange(no_depths):            
             # This is dCA_dt
             rate[i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
                                     * coA[i] + lambda_ * CA[i] * coC[i])
@@ -331,21 +335,21 @@ class LMAHeureuxPorosityDiff(PDEBase):
             # This is dcCa_dt
             rate[2 * no_depths + i] =  helper_cCa_grad[i]/Phi[i] -W[i] * \
                                         cCa_grad[i] + Da * (1 - Phi[i]) * \
-                                        (delta - cCa[i]) * (coA[i] - lambda_ \
-                                        * coC[i])/Phi[i]
+                                        (delta - cCa[i]) * common_helper3[i] \
+                                        /Phi[i]
 
             # This is dcCO3_dt
             rate[3 * no_depths + i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * \
                                         cCO3_grad[i] + Da * (1 - Phi[i]) * \
-                                        (delta - cCO3[i]) * (coA[i] - \
-                                        lambda_ * coC[i])/Phi[i]      
+                                        (delta - cCO3[i]) * common_helper3[i] \
+                                        /Phi[i]      
 
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / (1 - Phi[i])        
 
             # This is dPhi_dt
             rate[4 * no_depths + i] = - helper_Phi_grad[i] + dPhi[i] * \
                                         Phi_laplace[i] + Da * (1 - Phi[i]) \
-                                        * (coA[i] - lambda_ * coC[i])
+                                        * common_helper3[i] 
         return rate
 
     def jacobian_sparsity(self):
