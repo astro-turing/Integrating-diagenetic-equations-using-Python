@@ -58,7 +58,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 500
+number_of_depths = 200
 
 max_depth = 500
 
@@ -90,8 +90,8 @@ eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30
 depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
 
 # Let us try to reach 710 years, like Niklas.
-end_time = 10/Tstar
-number_of_steps = 1e4
+end_time = 100/Tstar
+number_of_steps = 1e5
 time_step = end_time/number_of_steps
 # t_eval = np.linspace(0,end_time, num = int(number_of_steps))
 
@@ -113,6 +113,7 @@ print()
 print("sol.t = {0}, sol.y =  {1}".format(sol.t, sol.y)) """
 
 fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1, figsize = (5, 25))
+fig.suptitle("Situation after " + str(end_time*Tstar) + " years")
 ax0.plot(depths, (sol.y)[slices_for_all_fields[0], -1], label = "CA")
 ax0.legend(loc='upper right')
 ax1.plot(depths, (sol.y)[slices_for_all_fields[1], -1], label = "CC")
