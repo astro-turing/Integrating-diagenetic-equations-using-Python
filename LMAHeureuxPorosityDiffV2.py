@@ -98,7 +98,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
     def evolution_rate(self, state: FieldBase, t: float = 0) -> FieldBase:
         return super().evolution_rate(state, t)                            
 
-    def fun(self, t, y):
+    def fun(self, t, y, pbar, state):
+        """ solve_ivp demands that I add these two extra aguments, i.e.
+        pbar and state, as in jac, where I need them for 
+        tqdm progress reports.
+        However, for this rhs calculation, they are redundant. """    
         CA = ScalarField(self.Depths, y[self.slices_for_all_fields[0]])
         CC = ScalarField(self.Depths, y[self.slices_for_all_fields[1]])
         cCa = ScalarField(self.Depths, y[self.slices_for_all_fields[2]])
@@ -187,7 +191,12 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data.ravel()
 
-    def fun_numba(self, t, y):
+    def fun_numba(self, t, y, pbar, state):
+        """ solve_ivp demands that I add these two extra aguments, i.e.
+        pbar and state, as in jac, where I need them for 
+        tqdm progress display.
+        However, for this rhs calculation, they are redundant. """
+
         """ the numba-accelerated evolution equation """     
         CA = y[self.CA_sl]
         CC = y[self.CC_sl]
@@ -208,8 +217,16 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return rhs
 
-    def jac(self, t, y):
-
+    def jac(self, t, y, pbar, state):
+        """ For tqdm to monitor progress. """
+        """ From 
+        https://stackoverflow.com/questions/59047892/how-to-monitor-the-process-of-scipy-odeint """
+        last_t, dt = state
+        n = int((t - last_t)/dt)
+        pbar.update(n)
+        # this we need to take into account that n is a rounded number.
+        state[0] = last_t + dt * n
+        
         CA = y[self.CA_sl]
         CC = y[self.CC_sl]
         cCa = y[self.cCa_sl]
@@ -337,33 +354,21 @@ class LMAHeureuxPorosityDiff(PDEBase):
             rate[i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
                                     * coA[i] + lambda_ * CA[i] * coC[i])
 
-            """ if CA[i]<0 and rate[i]<0:
-                rate[i] *= -1 """                        
-
             # This is dCC_dt
             rate[no_depths + i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
-                                    (1 - CC[i]) * coC[i] + CC[i] * coA[i])
-
-            if CC[i]<0 and rate[no_depths + i]<0:
-                rate[no_depths + i] *= -1                
+                                    (1 - CC[i]) * coC[i] + CC[i] * coA[i])              
 
             # This is dcCa_dt
             rate[2 * no_depths + i] =  helper_cCa_grad[i]/Phi[i] - W[i] * \
                                         cCa_grad[i] + Da * one_minus_Phi[i] * \
                                         (delta - cCa[i]) * common_helper3[i] \
-                                        /Phi[i]
-
-            if cCa[i]<0 and rate[2 * no_depths + i]<0:
-                rate[2 * no_depths + i] *= -1                                      
+                                        /Phi[i]                                 
 
             # This is dcCO3_dt
             rate[3 * no_depths + i] =  helper_cCO3_grad[i]/Phi[i] - W[i] * \
                                         cCO3_grad[i] + Da * one_minus_Phi[i] * \
                                         (delta - cCO3[i]) * common_helper3[i] \
-                                        /Phi[i]     
-
-            if cCO3[i]<0 and rate[3 * no_depths + i]<0:
-                rate[3 * no_depths + i] *= -1                   
+                                        /Phi[i]                       
 
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
 
@@ -371,10 +376,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
             rate[4 * no_depths + i] = - (dW_dx[i] * Phi[i] + W[i] * Phi_gradient[i]) \
                                       + dPhi[i] * Phi_laplace[i] + Da * one_minus_Phi[i] \
                                       * common_helper3[i] 
-
-            """ if (Phi[i]>0 and rate[4 * no_depths + i]) or \
-               (Phi[i]<0 and rate[4 * no_depths + i])<0:
-                rate[4 * no_depths + i] *= -1 """
 
         return rate
 

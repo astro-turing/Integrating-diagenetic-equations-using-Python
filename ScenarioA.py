@@ -9,6 +9,7 @@ from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
 from pde import CartesianGrid, ScalarField
 from scipy.integrate import solve_ivp
 import time
+from tqdm import tqdm
 
 Scenario = 'A'
 CA0 = 0.6
@@ -58,7 +59,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 2000
+number_of_depths = 200
 
 max_depth = 500
 
@@ -98,19 +99,33 @@ time_step = end_time/number_of_steps
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
-y0 = state.data.ravel()               
+y0 = state.data.ravel()   
+
+number_of_progress_updates = 1000
 
 start_computing = time.time()
-sol = solve_ivp(eq.fun_numba, (0, end_time), y0, atol = 1e-7, rtol = 1e-7, \
-                method="BDF", vectorized = False,\
-                first_step = time_step, jac = eq.jac)
+with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
+    sol = solve_ivp(fun = eq.fun_numba, t_span = (0, end_time), y0 = y0, \
+                atol = 1e-7, rtol = 1e-7, \
+                method="BDF", dense_output= True,\
+                first_step = time_step, jac = eq.jac, \
+                args=[pbar, [0, 1/number_of_progress_updates]])
 end_computing = time.time()
 
-print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
-
-""" print("sol.status = {0}, sol.success =  {1}".format(sol.status, sol.success))
 print()
-print("sol.t = {0}, sol.y =  {1}".format(sol.t, sol.y)) """
+print("Number of rhs evaluations = {0}".format(sol.nfev))
+print()
+print("Number of Jacobian evaluations = {0}".format(sol.njev))
+print()
+print("Number of LU decompositions = {0}".format(sol.nlu))
+print()
+print("Status = {0}".format(sol.status))
+print()
+print("Success = {0}".format(sol.success))
+print()
+print("Message from solve_ivp = {0}".format(sol.message))
+print()
+print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
 
 fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1, figsize = (5, 25))
 fig.suptitle("Situation after " + str(end_time*Tstar) + " years")
