@@ -139,9 +139,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         
         # Wslash = - self.rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
 
-        dCA_dt = - U * CA.gradient(self.bc_CA) - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
+        dCA_dt = - U * CA.gradient(self.bc_CA)[0] - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
 
-        dCC_dt = - U * CC.gradient(self.bc_CC) + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
+        dCC_dt = - U * CC.gradient(self.bc_CC)[0] + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
 
         # Implementing equation 6 from l'Heureux.
         denominator = 1 - 2 * ScalarField(self.Depths, np.log(Phi.data))
@@ -337,9 +337,15 @@ class LMAHeureuxPorosityDiff(PDEBase):
             rate[i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
                                     * coA[i] + lambda_ * CA[i] * coC[i])
 
+            """ if CA[i]<0 and rate[i]<0:
+                rate[i] *= -1 """                        
+
             # This is dCC_dt
             rate[no_depths + i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
                                     (1 - CC[i]) * coC[i] + CC[i] * coA[i])
+
+            if CC[i]<0 and rate[no_depths + i]<0:
+                rate[no_depths + i] *= -1                
 
             # This is dcCa_dt
             rate[2 * no_depths + i] =  helper_cCa_grad[i]/Phi[i] - W[i] * \
@@ -347,11 +353,17 @@ class LMAHeureuxPorosityDiff(PDEBase):
                                         (delta - cCa[i]) * common_helper3[i] \
                                         /Phi[i]
 
+            if cCa[i]<0 and rate[2 * no_depths + i]<0:
+                rate[2 * no_depths + i] *= -1                                      
+
             # This is dcCO3_dt
             rate[3 * no_depths + i] =  helper_cCO3_grad[i]/Phi[i] - W[i] * \
                                         cCO3_grad[i] + Da * one_minus_Phi[i] * \
                                         (delta - cCO3[i]) * common_helper3[i] \
-                                        /Phi[i]      
+                                        /Phi[i]     
+
+            if cCO3[i]<0 and rate[3 * no_depths + i]<0:
+                rate[3 * no_depths + i] *= -1                   
 
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
 
@@ -359,6 +371,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
             rate[4 * no_depths + i] = - (dW_dx[i] * Phi[i] + W[i] * Phi_gradient[i]) \
                                       + dPhi[i] * Phi_laplace[i] + Da * one_minus_Phi[i] \
                                       * common_helper3[i] 
+
+            """ if (Phi[i]>0 and rate[4 * no_depths + i]) or \
+               (Phi[i]<0 and rate[4 * no_depths + i])<0:
+                rate[4 * no_depths + i] *= -1 """
+
         return rate
 
     def jacobian_sparsity(self):

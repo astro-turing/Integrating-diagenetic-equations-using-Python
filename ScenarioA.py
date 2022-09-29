@@ -58,7 +58,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 400
+number_of_depths = 2000
 
 max_depth = 500
 
@@ -68,16 +68,7 @@ AragoniteSurface = ScalarField(Depths, CAIni)
 CalciteSurface = ScalarField(Depths, CCIni)
 CaSurface = ScalarField(Depths, cCaIni)
 CO3Surface = ScalarField(Depths, cCO3Ini)
-# We have an initial porosity of 0.5 at a boundary 0f 0.6. That is not smooth,
-# especially in the beginning. That may lead to difficulties. So perhaps replace
-# a uniform PhiIni by a smoothed distribution, using an exponential. 
-all_depths = np.linspace(0, max_depth * (1 + 0.5/number_of_depths)/Xstar, \
-             number_of_depths)
-alpha = -np.log(PhiIni - Phi0 + 1)/all_depths[-1]
-# smoothed_PhiIni = Phi0 - 1 + np.exp(-alpha * all_depths)
-PorSurface = ScalarField.from_expression(Depths,\
-             "{0} - 1 + exp(-{1} * x)".format(Phi0, alpha))
-# PorSurface = ScalarField(Depths, PhiIni) 
+PorSurface = ScalarField(Depths, PhiIni) 
 
 # I need those two fields for computing coA, which is rather involved.
 # There may be a simpler way of selecting these depths, but I haven't
@@ -100,7 +91,7 @@ depths = ScalarField.from_expression(Depths, "x").data * Xstar
 
 # Let us try to reach 710 years, like Niklas.
 end_time = Tstar/Tstar
-number_of_steps = 1e7
+number_of_steps = 1e6
 time_step = end_time/number_of_steps
 # t_eval = np.linspace(0,end_time, num = int(number_of_steps))
 
@@ -110,7 +101,7 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
 y0 = state.data.ravel()               
 
 start_computing = time.time()
-sol = solve_ivp(eq.fun_numba, (0, end_time), y0, atol = 1e-10, rtol = 1e-10, \
+sol = solve_ivp(eq.fun_numba, (0, end_time), y0, atol = 1e-7, rtol = 1e-7, \
                 method="BDF", vectorized = False,\
                 first_step = time_step, jac = eq.jac)
 end_computing = time.time()
