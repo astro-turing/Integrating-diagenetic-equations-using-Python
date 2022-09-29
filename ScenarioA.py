@@ -59,7 +59,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 200
+number_of_depths = 1000
 
 max_depth = 500
 
@@ -92,7 +92,7 @@ depths = ScalarField.from_expression(Depths, "x").data * Xstar
 
 # Let us try to reach 710 years, like Niklas.
 end_time = Tstar/Tstar
-number_of_steps = 1e6
+number_of_steps = 1e7
 time_step = end_time/number_of_steps
 # t_eval = np.linspace(0,end_time, num = int(number_of_steps))
 
@@ -126,6 +126,7 @@ print()
 print("Message from solve_ivp = {0}".format(sol.message))
 print()
 print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
+print()
 
 fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1, figsize = (5, 25))
 fig.suptitle("Situation after " + str(end_time*Tstar) + " years")
