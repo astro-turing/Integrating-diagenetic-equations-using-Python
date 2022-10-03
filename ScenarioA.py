@@ -59,7 +59,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 1000
+number_of_depths = 200
 
 max_depth = 500
 
@@ -91,24 +91,28 @@ eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30
 depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
 
 # Let us try to reach 710 years, like Niklas.
-end_time = Tstar/Tstar
-number_of_steps = 1e7
-time_step = end_time/number_of_steps
-# t_eval = np.linspace(0,end_time, num = int(number_of_steps))
+end_time = 450/Tstar
+# number_of_steps = 1e7
+# time_step = end_time/number_of_steps
+# Number of times to evaluate.
+no_t_eval = 100
+# t_eval = np.logspace(np.log10(end_time/no_t_eval), np.log10(end_time), no_t_eval)
+t_eval = np.linspace(0, end_time, num = no_t_eval)
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
 y0 = state.data.ravel()   
 
-number_of_progress_updates = 1000
+number_of_progress_updates = 100000
 
 start_computing = time.time()
 with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
     sol = solve_ivp(fun = eq.fun_numba, t_span = (0, end_time), y0 = y0, \
-                atol = 1e-7, rtol = 1e-7, \
+                atol = 1e-2, rtol = 1e-2, t_eval= t_eval, \
+                events = [eq.zeros_CA, eq.zeros_CC, eq.ones_CA_plus_CC, eq.ones_Phi],  \
                 method="BDF", dense_output= True,\
-                first_step = time_step, jac = eq.jac, \
+                first_step = None, jac = eq.jac, \
                 args=[pbar, [0, 1/number_of_progress_updates]])
 end_computing = time.time()
 
@@ -122,6 +126,22 @@ print()
 print("Status = {0}".format(sol.status))
 print()
 print("Success = {0}".format(sol.success))
+print()
+w = sol.t_events[0]
+print(("Times, in years, at which CA at any depth was below zero: "\
+      +', '.join(['%.2f']*len(w))+"") % tuple([Tstar * time for time in w]))
+print()
+x = sol.t_events[1]
+print(("Times, in years, at which CC at any depth was below zero: "\
+      +', '.join(['%.2f']*len(x))+"") % tuple([Tstar * time for time in x]))
+print()
+y = sol.t_events[2]
+print(("Times, in years, at which CA + CC at any depth was larger than 1: "\
+      +', '.join(['%.2f']*len(y))+"") % tuple([Tstar * time for time in y]))
+print()
+z = sol.t_events[3]
+print(("Times, in years, at which the porosity at any depth was larger than 1: "\
+      +', '.join(['%.2f']*len(z))+"") % tuple([Tstar * time for time in z]))
 print()
 print("Message from solve_ivp = {0}".format(sol.message))
 print()

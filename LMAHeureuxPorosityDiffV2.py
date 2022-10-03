@@ -217,6 +217,38 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return rhs
 
+    def zeros_CA(self, t, y, pbar, state):
+        """ solve_ivp demands that I add these two extra aguments, i.e.
+        pbar and state, as in jac, where I need them for 
+        tqdm progress display.
+        However, for this rhs calculation, they are redundant. """
+        return np.amin(y[self.CA_sl])
+
+    def zeros_CC(self, t, y, pbar, state):
+        """ solve_ivp demands that I add these two extra aguments, i.e.
+        pbar and state, as in jac, where I need them for 
+        tqdm progress display.
+        However, for this rhs calculation, they are redundant. """
+        return np.amin(y[self.CC_sl])
+
+    def ones_CA_plus_CC(self, t, y, pbar, state): 
+        """ solve_ivp demands that I add these two extra aguments, i.e.
+        pbar and state, as in jac, where I need them for 
+        tqdm progress display.
+        However, for this rhs calculation, they are redundant. """
+        CA = y[self.CA_sl]
+        CC = y[self.CC_sl]
+        return np.amax(CA + CC) - 1
+
+    def ones_Phi(self, t, y, pbar, state): 
+        """ solve_ivp demands that I add these two extra aguments, i.e.
+        pbar and state, as in jac, where I need them for 
+        tqdm progress display.
+        However, for this rhs calculation, they are redundant. """
+        Phi = y[self.Phi_sl]   
+        return np.amax(Phi) - 1
+
+
     def jac(self, t, y, pbar, state):
         """ For tqdm to monitor progress. """
         """ From 
@@ -354,9 +386,15 @@ class LMAHeureuxPorosityDiff(PDEBase):
             rate[i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
                                     * coA[i] + lambda_ * CA[i] * coC[i])
 
+            # if CA[i]<0 and rate[i]<0:
+            #     rate[i] *= -1
+
             # This is dCC_dt
             rate[no_depths + i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
                                     (1 - CC[i]) * coC[i] + CC[i] * coA[i])              
+
+            # if CC[i]<0 and rate[no_depths + i]<0:
+            #     rate[no_depths + i] *= -1
 
             # This is dcCa_dt
             rate[2 * no_depths + i] =  helper_cCa_grad[i]/Phi[i] - W[i] * \
@@ -364,11 +402,17 @@ class LMAHeureuxPorosityDiff(PDEBase):
                                         (delta - cCa[i]) * common_helper3[i] \
                                         /Phi[i]                                 
 
+            # if cCa[i]<0 and rate[2 * no_depths + i]<0:
+            #     rate[2* no_depths + i] *= -1
+
             # This is dcCO3_dt
             rate[3 * no_depths + i] =  helper_cCO3_grad[i]/Phi[i] - W[i] * \
                                         cCO3_grad[i] + Da * one_minus_Phi[i] * \
                                         (delta - cCO3[i]) * common_helper3[i] \
                                         /Phi[i]                       
+
+            # if cCO3[i]<0 and rate[3 * no_depths + i]<0:
+            #     rate[3 * no_depths + i] *= -1
 
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
 
@@ -376,6 +420,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
             rate[4 * no_depths + i] = - (dW_dx[i] * Phi[i] + W[i] * Phi_gradient[i]) \
                                       + dPhi[i] * Phi_laplace[i] + Da * one_minus_Phi[i] \
                                       * common_helper3[i] 
+
+            # if Phi[i]>0.9 and rate[4 * no_depths + i] > 1:
+            #     rate[4 * no_depths + i] *= -1
 
         return rate
 
