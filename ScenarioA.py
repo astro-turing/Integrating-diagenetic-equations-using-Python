@@ -149,7 +149,8 @@ print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_compu
 print()
 
 fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1, figsize = (5, 25))
-fig.suptitle("Situation after " + str(end_time*Tstar) + " years")
+fig.suptitle("Situation after " + " {:.2f} ".format(pbar.n * \
+        Tstar/number_of_progress_updates) + " years")
 ax0.plot(depths, (sol.y)[slices_for_all_fields[0], -1], label = "CA")
 ax0.legend(loc='upper right')
 ax1.plot(depths, (sol.y)[slices_for_all_fields[1], -1], label = "CC")
