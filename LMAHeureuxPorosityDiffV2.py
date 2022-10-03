@@ -83,6 +83,14 @@ class LMAHeureuxPorosityDiff(PDEBase):
             bc=self.bc_Phi)
         self.laplace_Phi = self.Depths.make_operator("laplace", bc=self.bc_Phi)        
 
+        # Make sure integration stops when we field values become less than zero
+        # or more than one, in some cases.
+        setattr(self.zeros.__func__, "terminal", False)
+        setattr(self.zeros_CA.__func__, "terminal", False)
+        setattr(self.zeros_CC.__func__, "terminal", False)
+        setattr(self.ones_CA_plus_CC.__func__, "terminal", False)
+        setattr(self.ones_Phi.__func__, "terminal", False)
+
     def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
         """generate a suitable initial state"""
@@ -217,14 +225,19 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return rhs
 
+    def zeros(self, t, y, pbar, state):
+        """ solve_ivp demands that I add these two extra aguments, i.e.
+        pbar and state, as in jac, where I need them for 
+        tqdm progress display.
+        However, for this rhs calculation, they are redundant. """
+
+        return np.amin(y)
+
     def zeros_CA(self, t, y, pbar, state):
         """ solve_ivp demands that I add these two extra aguments, i.e.
         pbar and state, as in jac, where I need them for 
         tqdm progress display.
         However, for this rhs calculation, they are redundant. """
-        # Make sure integration stops when we field values become less than zero
-        # or more than one, in some cases.
-        setattr(LMAHeureuxPorosityDiff.zeros_CA, "terminal", True)
 
         return np.amin(y[self.CA_sl])
 
@@ -233,7 +246,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         pbar and state, as in jac, where I need them for 
         tqdm progress display.
         However, for this rhs calculation, they are redundant. """
-        setattr(LMAHeureuxPorosityDiff.zeros_CC, "terminal", True)
 
         return np.amin(y[self.CC_sl])
 
@@ -242,9 +254,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         pbar and state, as in jac, where I need them for 
         tqdm progress display.
         However, for this rhs calculation, they are redundant. """
-        # Make sure integration stops when we field values become less than zero
-        # or more than one, in some cases.
-        setattr(LMAHeureuxPorosityDiff.ones_CA_plus_CC, "terminal", True)
 
         CA = y[self.CA_sl]
         CC = y[self.CC_sl]
@@ -255,9 +264,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         pbar and state, as in jac, where I need them for 
         tqdm progress display.
         However, for this rhs calculation, they are redundant. """
-        # Make sure integration stops when we field values become less than zero
-        # or more than one, in some cases.
-        setattr(LMAHeureuxPorosityDiff.ones_Phi, "terminal", True)
 
         Phi = y[self.Phi_sl]   
         return np.amax(Phi) - 1
