@@ -91,7 +91,7 @@ eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30
 depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
 
 # Let us try to reach 710 years, like Niklas.
-end_time = 450/Tstar
+end_time = 400/Tstar
 # number_of_steps = 1e7
 # time_step = end_time/number_of_steps
 # Number of times to evaluate.
@@ -149,8 +149,11 @@ print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_compu
 print()
 
 fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1, figsize = (5, 25))
-fig.suptitle("Situation after " + " {:.2f} ".format(pbar.n * \
-        Tstar/number_of_progress_updates) + " years")
+if sol.status == 0:
+    covered_time = Tstar * end_time
+else:
+   covered_time = pbar.n * Tstar/number_of_progress_updates 
+fig.suptitle("Situation after " + " {:.2f} ".format(covered_time) + " years")
 ax0.plot(depths, (sol.y)[slices_for_all_fields[0], -1], label = "CA")
 ax0.legend(loc='upper right')
 ax1.plot(depths, (sol.y)[slices_for_all_fields[1], -1], label = "CC")
