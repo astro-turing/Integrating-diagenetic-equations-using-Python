@@ -16,14 +16,14 @@ CA0 = 0.6
 CAIni = CA0
 CC0 = 0.3
 CCIni = CC0
-cCa0 = 0.326
+cCa0 = 0.326e-3
 cCaIni = cCa0
-cCO30 = 0.326
+cCO30 = 0.326e-3
 cCO3Ini = cCO30
 Phi0 = 0.6
 PhiIni = 0.5
 
-ShallowLimit = 100
+ShallowLimit = 50
 
 DeepLimit = 150
 
@@ -59,7 +59,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 400
+number_of_depths = 200
 
 max_depth = 500
 
