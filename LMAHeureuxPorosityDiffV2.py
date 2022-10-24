@@ -71,7 +71,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.cCO3_sl = self.slices_for_all_fields[3]
         self.Phi_sl = self.slices_for_all_fields[4]
         
-        self.backward_diff = _make_derivative(Depths, method="forward")
+        self.backward_diff = _make_derivative(Depths, method="backward")
+        self.forward_diff = _make_derivative(Depths, method="forward")
 
         # Make sure integration stops when we field values become less than zero
         # or more than one, in some cases.
@@ -194,6 +195,14 @@ class LMAHeureuxPorosityDiff(PDEBase):
         pbar and state, as in jac, where I need them for 
         tqdm progress display.
         However, for this rhs calculation, they are redundant. """
+        """ For tqdm to monitor progress. """
+        """ From 
+        https://stackoverflow.com/questions/59047892/how-to-monitor-the-process-of-scipy-odeint """
+        last_t, dt = state
+        n = int((t - last_t)/dt)
+        pbar.update(n)
+        # this we need to take into account that n is a rounded number.
+        state[0] = last_t + dt * n
 
         """ the numba-accelerated evolution equation """     
         CA = ScalarField(self.Depths, y[self.slices_for_all_fields[0]])
@@ -202,8 +211,21 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3 = ScalarField(self.Depths, y[self.slices_for_all_fields[3]])
         Phi = ScalarField(self.Depths, y[self.slices_for_all_fields[4]])
 
-        CA_grad = CA.gradient(self.bc_CA)[0]
-        CC_grad = CC.gradient(self.bc_CC)[0]
+        # CA_grad = CA.gradient(self.bc_CA)[0]
+        # Instead of a central differencing gradient, 
+        # construct a backward differencing gradient, for better stability.
+        CA_grad = CA.copy()
+        CA_grad.data[:] = 0
+        CA.set_ghost_cells(self.bc_CA)
+        self.backward_diff(CA._data_full, out = CA_grad.data)
+
+        # CC_grad = CC.gradient(self.bc_CC)[0]
+        # Instead of a central differencing gradient, 
+        # construct a backward differencing gradient, for better stability.
+        CC_grad = CC.copy()
+        CC_grad.data[:] = 0
+        CC.set_ghost_cells(self.bc_CC)
+        self.backward_diff(CC._data_full, out = CC_grad.data)
 
         # cCa_grad = cCa.gradient(self.bc_cCa)[0]
         # Instead of a central differencing gradient, 
@@ -211,7 +233,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCa_grad = cCa.copy()
         cCa_grad.data[:] = 0
         cCa.set_ghost_cells(self.bc_cCa)
-        self.backward_diff(cCa._data_full, out = cCa_grad.data)
+        self.forward_diff(cCa._data_full, out = cCa_grad.data)
         cCa_laplace = cCa.laplace(self.bc_cCa)
 
         # cCO3_grad = cCO3.gradient(self.bc_cCO3)[0]
@@ -220,7 +242,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3_grad = cCO3.copy()
         cCO3_grad.data[:] = 0
         cCO3.set_ghost_cells(self.bc_cCO3)
-        self.backward_diff(cCO3._data_full, out = cCO3_grad.data)
+        self.forward_diff(cCO3._data_full, out = cCO3_grad.data)
         cCO3_laplace = cCO3.laplace(self.bc_cCO3)
 
         # Phi_grad = Phi.gradient(self.bc_Phi)[0]
@@ -229,7 +251,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         Phi_grad = Phi.copy()
         Phi_grad.data[:] = 0
         Phi.set_ghost_cells(self.bc_Phi)
-        self.backward_diff(Phi._data_full, out = Phi_grad.data)
+        self.forward_diff(Phi._data_full, out = Phi_grad.data)
         Phi_laplace = Phi.laplace(self.bc_Phi)
 
         rhs = LMAHeureuxPorosityDiff.pde_rhs(CA.data, CC.data, cCa.data, \
@@ -445,6 +467,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
             rate[4 * no_depths + i] = - (dW_dx[i] * Phi[i] + W[i] * Phi_grad[i]) \
                                       + dPhi[i] * Phi_laplace[i] + Da * one_minus_Phi[i] \
                                       * common_helper3[i] 
+
+            if Phi[i]>0.8 and rate[4 * no_depths + i]>0:
+                rate[4 * no_depths + i] = 0
 
         return rate
 

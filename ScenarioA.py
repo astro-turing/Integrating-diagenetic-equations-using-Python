@@ -109,7 +109,7 @@ number_of_progress_updates = 100000
 start_computing = time.time()
 with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
     sol = solve_ivp(fun = eq.fun_numba, t_span = (0, end_time), y0 = y0, \
-                atol = 1e-3, rtol = 1e-3, t_eval= t_eval, \
+                atol = 1e-10, rtol = 1e-10, t_eval= t_eval, \
                 events = [eq.zeros, eq.zeros_CA, eq.zeros_CC, \
                 eq.ones_CA_plus_CC, eq.ones_Phi],  \
                 method="BDF", dense_output= True,\
