@@ -65,6 +65,7 @@ max_depth = 500
 
 Depths = CartesianGrid([[0, max_depth * (1 + 0.5/number_of_depths)/Xstar]],\
                         [number_of_depths], periodic=False)
+                        
 AragoniteSurface = ScalarField(Depths, CAIni)
 CalciteSurface = ScalarField(Depths, CCIni)
 CaSurface = ScalarField(Depths, cCaIni)
