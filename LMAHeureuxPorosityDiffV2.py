@@ -255,6 +255,13 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCa.set_ghost_cells(self.bc_cCa)
         self.backward_diff(cCa._data_full, out = cCa_grad_back.data)
         self.forward_diff(cCa._data_full, out = cCa_grad_forw.data)
+        # The forward differenced gradient does not "feel" the surface 
+        # boundary conditions and the solutions will not meet them.
+        # See https://github.com/zwicker-group/py-pde/discussions/312
+        # Trying to fix this by replacing the forward differenced gradient
+        # by a central differenced gradient, only for depth 0.
+        cCa_grad_forw.data[0] += cCa_grad_back.data[0]
+        cCa_grad_forw.data[0] /= 2
         cCa_laplace = cCa.laplace(self.bc_cCa)
 
         # cCO3_grad = cCO3.gradient(self.bc_cCO3)[0]
@@ -267,6 +274,13 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3.set_ghost_cells(self.bc_cCO3)
         self.backward_diff(cCO3._data_full, out = cCO3_grad_back.data)
         self.forward_diff(cCO3._data_full, out = cCO3_grad_forw.data)
+        # The forward differenced gradient does not "feel" the surface 
+        # boundary conditions and the solutions will not meet them.
+        # See https://github.com/zwicker-group/py-pde/discussions/312
+        # Trying to fix this by replacing the forward differenced gradient
+        # by a central differenced gradient, only for depth 0.
+        cCO3_grad_forw.data[0] += cCO3_grad_back.data[0]
+        cCO3_grad_forw.data[0] /= 2
         cCO3_laplace = cCO3.laplace(self.bc_cCO3)
 
         # Phi_grad = Phi.gradient(self.bc_Phi)[0]
@@ -279,6 +293,13 @@ class LMAHeureuxPorosityDiff(PDEBase):
         Phi.set_ghost_cells(self.bc_Phi)
         self.backward_diff(Phi._data_full, out = Phi_grad_back.data)
         self.forward_diff(Phi._data_full, out = Phi_grad_forw.data)
+        # The forward differenced gradient does not "feel" the surface 
+        # boundary conditions and the solutions will not meet them.
+        # See https://github.com/zwicker-group/py-pde/discussions/312
+        # Trying to fix this by replacing the forward differenced gradient
+        # by a central differenced gradient, only for depth 0.
+        Phi_grad_forw.data[0] += Phi_grad_back.data[0]
+        Phi_grad_forw.data[0] /= 2
         Phi_laplace = Phi.laplace(self.bc_Phi)
 
         rhs = LMAHeureuxPorosityDiff.pde_rhs(CA.data, CC.data, cCa.data, \
