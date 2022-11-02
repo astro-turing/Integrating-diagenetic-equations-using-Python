@@ -16,9 +16,11 @@ CA0 = 0.6
 CAIni = CA0
 CC0 = 0.3
 CCIni = CC0
-cCa0 = 0.326e-3/np.sqrt(10**(-6.37))
+KA = 10 ** (- 6.19)
+KC = 10 ** (- 6.37)
+cCa0 = 0.326e-3/np.sqrt(KC)
 cCaIni = cCa0
-cCO30 = 0.326e-3/np.sqrt(10**(-6.37))
+cCO30 = 0.326e-3/np.sqrt(KC)
 cCO3Ini = cCO30
 Phi0 = 0.6
 PhiIni = 0.5
@@ -32,9 +34,6 @@ m1 = 2.48
 m2 = m1
 n1 = 2.8
 n2 = n1
-KA = 10 ** (- 6.19)
-
-KC = 10 ** (- 6.37)
 rhos0 = 2.95 * CA0 + 2.71 * CC0 + 2.8 * (1 - (CA0 + CC0))
 
 rhos = rhos0
@@ -65,7 +64,7 @@ max_depth = 500
 
 Depths = CartesianGrid([[0, max_depth * (1 + 0.5/number_of_depths)/Xstar]],\
                         [number_of_depths], periodic=False)
-                        
+
 AragoniteSurface = ScalarField(Depths, CAIni)
 CalciteSurface = ScalarField(Depths, CCIni)
 CaSurface = ScalarField(Depths, cCaIni)
