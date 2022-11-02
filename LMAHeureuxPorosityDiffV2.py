@@ -260,7 +260,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # See https://github.com/zwicker-group/py-pde/discussions/312
         # Trying to fix this by replacing the forward differenced gradient
         # by a backward differenced gradient, only for depth 0.
-        cCa_grad_forw.data[0] = cCa_grad_back.data[0]
+        # cCa_grad_forw.data[0] = cCa_grad_back.data[0]
         cCa_laplace = cCa.laplace(self.bc_cCa)
 
         # cCO3_grad = cCO3.gradient(self.bc_cCO3)[0]
@@ -278,7 +278,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # See https://github.com/zwicker-group/py-pde/discussions/312
         # Trying to fix this by replacing the forward differenced gradient
         # by a backward differenced gradient, only for depth 0.
-        cCO3_grad_forw.data[0] = cCO3_grad_back.data[0]
+        # cCO3_grad_forw.data[0] = cCO3_grad_back.data[0]
         cCO3_laplace = cCO3.laplace(self.bc_cCO3)
 
         # Phi_grad = Phi.gradient(self.bc_Phi)[0]
@@ -296,7 +296,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # See https://github.com/zwicker-group/py-pde/discussions/312
         # Trying to fix this by replacing the forward differenced gradient
         # by a backward differenced gradient, only for depth 0.
-        Phi_grad_forw.data[0] = Phi_grad_back.data[0]
+        # Phi_grad_forw.data[0] = Phi_grad_back.data[0]
         Phi_laplace = Phi.laplace(self.bc_Phi)
 
         rhs = LMAHeureuxPorosityDiff.pde_rhs(CA.data, CC.data, cCa.data, \
