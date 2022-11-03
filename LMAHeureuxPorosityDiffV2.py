@@ -223,9 +223,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3 = ScalarField(self.Depths, y[self.slices_for_all_fields[3]])
         Phi = ScalarField(self.Depths, y[self.slices_for_all_fields[4]])
 
-        # CA_grad = CA.gradient(self.bc_CA)[0]
-        # Instead of a central differencing gradient, 
-        # construct a backward differencing gradient, for better stability.
+        # Instead of the default central differenced gradient from py-pde
+        # construct forward and backward differenced gradients and apply
+        # either one of them, based on the sign of U.
         CA_grad_back = CA.copy()
         CA_grad_forw = CA.copy()
         CA_grad_back.data[:] = 0
@@ -234,9 +234,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.backward_diff(CA._data_full, out = CA_grad_back.data)
         self.forward_diff(CA._data_full, out = CA_grad_forw.data)
 
-        # CC_grad = CC.gradient(self.bc_CC)[0]
-        # Instead of a central differencing gradient, 
-        # construct a backward differencing gradient, for better stability.
+        # Instead of the default central differenced gradient from py-pde
+        # construct forward and backward differenced gradients and apply
+        # either one of them, based on the sign of U.
         CC_grad_back = CC.copy()
         CC_grad_forw = CC.copy()
         CC_grad_back.data[:] = 0
@@ -245,9 +245,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.backward_diff(CC._data_full, out = CC_grad_back.data)
         self.forward_diff(CC._data_full, out = CC_grad_forw.data)
 
-        # cCa_grad = cCa.gradient(self.bc_cCa)[0]
-        # Instead of a central differencing gradient, 
-        # construct a backward differencing gradient, for better stability.
+        # Instead of the default central differenced gradient from py-pde
+        # construct forward and backward differenced gradients and give them
+        # appropriate weights according to a Fiadeiro-Veronis scheme.
         cCa_grad_back = cCa.copy()
         cCa_grad_forw = cCa.copy()
         cCa_grad_back.data[:] = 0
@@ -255,17 +255,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCa.set_ghost_cells(self.bc_cCa)
         self.backward_diff(cCa._data_full, out = cCa_grad_back.data)
         self.forward_diff(cCa._data_full, out = cCa_grad_forw.data)
-        # The forward differenced gradient does not "feel" the surface 
-        # boundary conditions and the solutions will not meet them.
-        # See https://github.com/zwicker-group/py-pde/discussions/312
-        # Trying to fix this by replacing the forward differenced gradient
-        # by a backward differenced gradient, only for depth 0.
-        # cCa_grad_forw.data[0] = cCa_grad_back.data[0]
         cCa_laplace = cCa.laplace(self.bc_cCa)
 
-        # cCO3_grad = cCO3.gradient(self.bc_cCO3)[0]
-        # Instead of a central differencing gradient, 
-        # construct a backward differencing gradient, for better stability.
+        # Instead of the default central differenced gradient from py-pde
+        # construct forward and backward differenced gradients and give them
+        # appropriate weights according to a Fiadeiro-Veronis scheme.
         cCO3_grad_back = cCO3.copy()
         cCO3_grad_forw = cCO3.copy()
         cCO3_grad_back.data[:] = 0
@@ -273,17 +267,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3.set_ghost_cells(self.bc_cCO3)
         self.backward_diff(cCO3._data_full, out = cCO3_grad_back.data)
         self.forward_diff(cCO3._data_full, out = cCO3_grad_forw.data)
-        # The forward differenced gradient does not "feel" the surface 
-        # boundary conditions and the solutions will not meet them.
-        # See https://github.com/zwicker-group/py-pde/discussions/312
-        # Trying to fix this by replacing the forward differenced gradient
-        # by a backward differenced gradient, only for depth 0.
-        # cCO3_grad_forw.data[0] = cCO3_grad_back.data[0]
         cCO3_laplace = cCO3.laplace(self.bc_cCO3)
 
-        # Phi_grad = Phi.gradient(self.bc_Phi)[0]
-        # Instead of a central differencing gradient, 
-        # construct a backward differencing gradient, for better stability.
+        # Instead of the default central differenced gradient from py-pde
+        # construct forward and backward differenced gradients and give them
+        # appropriate weights according to a Fiadeiro-Veronis scheme.
         Phi_grad_back = Phi.copy()
         Phi_grad_forw = Phi.copy()
         Phi_grad_back.data[:] = 0
@@ -291,12 +279,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         Phi.set_ghost_cells(self.bc_Phi)
         self.backward_diff(Phi._data_full, out = Phi_grad_back.data)
         self.forward_diff(Phi._data_full, out = Phi_grad_forw.data)
-        # The forward differenced gradient does not "feel" the surface 
-        # boundary conditions and the solutions will not meet them.
-        # See https://github.com/zwicker-group/py-pde/discussions/312
-        # Trying to fix this by replacing the forward differenced gradient
-        # by a backward differenced gradient, only for depth 0.
-        # Phi_grad_forw.data[0] = Phi_grad_back.data[0]
         Phi_laplace = Phi.laplace(self.bc_Phi)
 
         rhs = LMAHeureuxPorosityDiff.pde_rhs(CA.data, CC.data, cCa.data, \
