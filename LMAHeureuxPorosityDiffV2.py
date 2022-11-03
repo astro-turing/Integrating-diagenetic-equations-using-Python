@@ -210,11 +210,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
         """ For tqdm to monitor progress. """
         """ From 
         https://stackoverflow.com/questions/59047892/how-to-monitor-the-process-of-scipy-odeint """
-        # last_t, dt = state
-        # n = int((t - last_t)/dt)
-        # pbar.update(n)
-        # # this we need to take into account that n is a rounded number.
-        # state[0] = last_t + dt * n
+        last_t, dt = state
+        n = int((t - last_t)/dt)
+        pbar.update(n)
+        # this we need to take into account that n is a rounded number.
+        state[0] = last_t + dt * n
 
         """ the numba-accelerated evolution equation """     
         CA = ScalarField(self.Depths, y[self.slices_for_all_fields[0]])
