@@ -59,7 +59,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 1000
+number_of_depths = 200
 
 max_depth = 500
 
@@ -109,9 +109,9 @@ number_of_progress_updates = 100000
 start_computing = time.time()
 with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
     sol = solve_ivp(fun = eq.fun_numba, t_span = (0, end_time), y0 = y0, \
-                atol = 1e-3, rtol = 1e-3, t_eval= t_eval, \
+                atol = 1e-8, rtol = 1e-8, t_eval= t_eval, \
                 events = [eq.zeros, eq.zeros_CA, eq.zeros_CC, \
-                eq.ones_CA_plus_CC, eq.ones_Phi],  \
+                eq.ones_CA_plus_CC, eq.ones_Phi, eq.zeros_U, eq.zeros_W],  \
                 method="BDF", dense_output= True,\
                 first_step = None, jac = eq.jac, \
                 args=[pbar, [0, 1/number_of_progress_updates]])
@@ -128,26 +128,35 @@ print("Status = {0}".format(sol.status))
 print()
 print("Success = {0}".format(sol.success))
 print()
-v = sol.t_events[0]
-print(("Times, in years, at which any field at any depth was below zero: "\
-      +', '.join(['%.2f']*len(v))+"") % tuple([Tstar * time for time in v]))
+f = sol.t_events[0]
+print(("Times, in years, at which any field at any depth crossed zero: "\
+      +', '.join(['%.2f']*len(f))+"") % tuple([Tstar * time for time in f]))
 print()
-w = sol.t_events[1]
-print(("Times, in years, at which CA at any depth was below zero: "\
-      +', '.join(['%.2f']*len(w))+"") % tuple([Tstar * time for time in w]))
+g = sol.t_events[1]
+print(("Times, in years, at which CA at any depth crossed zero: "\
+      +', '.join(['%.2f']*len(g))+"") % tuple([Tstar * time for time in g]))
 print()
-x = sol.t_events[2]
-print(("Times, in years, at which CC at any depth was below zero: "\
-      +', '.join(['%.2f']*len(x))+"") % tuple([Tstar * time for time in x]))
+h = sol.t_events[2]
+print(("Times, in years, at which CC at any depth crossed zero: "\
+      +', '.join(['%.2f']*len(h))+"") % tuple([Tstar * time for time in h]))
 print()
-y = sol.t_events[3]
-print(("Times, in years, at which CA + CC at any depth was larger than 1: "\
-      +', '.join(['%.2f']*len(y))+"") % tuple([Tstar * time for time in y]))
+k = sol.t_events[3]
+print(("Times, in years, at which CA + CC at any depth crossed one: "\
+      +', '.join(['%.2f']*len(k))+"") % tuple([Tstar * time for time in k]))
 print()
-z = sol.t_events[4]
-print(("Times, in years, at which the porosity at any depth was larger than 1: "\
-      +', '.join(['%.2f']*len(z))+"") % tuple([Tstar * time for time in z]))
+l = sol.t_events[4]
+print(("Times, in years, at which the porosity at any depth crossed one: "\
+      +', '.join(['%.2f']*len(l))+"") % tuple([Tstar * time for time in l]))
 print()
+m = sol.t_events[5]
+print(("Times, in years, at which U at any depth crossed zero: "\
+      +', '.join(['%.2f']*len(m))+"") % tuple([Tstar * time for time in m]))
+print()
+n = sol.t_events[6]
+print(("Times, in years, at which W at any depth crossed zero: "\
+      +', '.join(['%.2f']*len(n))+"") % tuple([Tstar * time for time in n]))
+print()
+
 print("Message from solve_ivp = {0}".format(sol.message))
 print()
 print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
