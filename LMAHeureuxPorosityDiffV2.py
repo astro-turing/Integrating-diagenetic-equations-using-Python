@@ -178,6 +178,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         CC = y[self.CC_sl]
         cCa = y[self.cCa_sl]
         cCO3 = y[self.cCO3_sl]
+        # Set a limit on cCO3, which turns negative so quickly.
+        # cCO3 = np.fmax(cCO3, 0)
         Phi = y[self.Phi_sl]   
 
         rhs = LMAHeureuxPorosityDiff.pde_rhs(CA, CC, cCa, cCO3, Phi, self.KRat, \
@@ -198,6 +200,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         CC = y[self.CC_sl]
         cCa = y[self.cCa_sl]
         cCO3 = y[self.cCO3_sl]
+        # Set a limit on cCO3, which turns negative so quickly.
+        # cCO3 = np.fmax(cCO3, 0)
         Phi = y[self.Phi_sl]  
 
         jacob_csr = csr_matrix(Jacobian(CA, CC, cCa, cCO3, Phi, \
@@ -313,6 +317,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
                                         cCO3_grad[i] + Da * (1 - Phi[i]) * \
                                         (delta - cCO3[i]) * (coA[i] - \
                                         lambda_ * coC[i])/Phi[i]
+            if cCO3[i]<0 and rate[3 * no_depths + i] < 0:
+                rate[3 * no_depths + i] *= -1
+            """             if cCO3[i] > 2 and rate[3 * no_depths + i] > 0:
+                rate[3 * no_depths + i] *= -1    """      
 
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / (1 - Phi[i])        
 
