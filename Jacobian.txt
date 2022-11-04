@@ -3,7 +3,7 @@
 Index = 0
 
 
--Da*(-CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 + CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) + not_too_deep*not_too_shallow*(1 - CA)*Max(0, -KRat*cCO3*cCa + 1)**m2 + nu1*Max(0, KRat*cCO3*cCa - 1)**m1)
+-Da*(-CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) + CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) + (1 - CA)*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1))
 
 
 
@@ -19,7 +19,7 @@ Index = 1
 Index = 2
 
 
--Da*(CA*CC*lambda_*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) + (1 - CA)*(-CA*KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1)))
+-Da*(CA*CC*lambda_*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) + CA*(1 - CA)*(-KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)))
 
 
 
@@ -27,7 +27,7 @@ Index = 2
 Index = 3
 
 
--Da*(CA*CC*lambda_*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) + (1 - CA)*(-CA*KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1)))
+-Da*(CA*CC*lambda_*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) + CA*(1 - CA)*(-KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)))
 
 
 
@@ -43,7 +43,7 @@ Index = 4
 Index = 5
 
 
-CC*Da*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2
+CC*Da*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)
 
 
 
@@ -51,7 +51,7 @@ CC*Da*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2
 Index = 6
 
 
-Da*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) + lambda_*(1 - CC)*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)
+Da*(CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) + lambda_*(1 - CC)*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1))
 
 
 
@@ -59,7 +59,7 @@ Da*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*
 Index = 7
 
 
-Da*(CC*lambda_*(1 - CC)*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) + CC*(-CA*KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1)))
+Da*(CA*CC*(-KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)) + CC*lambda_*(1 - CC)*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)))
 
 
 
@@ -67,7 +67,7 @@ Da*(CC*lambda_*(1 - CC)*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n
 Index = 8
 
 
-Da*(CC*lambda_*(1 - CC)*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) + CC*(-CA*KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1)))
+Da*(CA*CC*(-KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)) + CC*lambda_*(1 - CC)*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)))
 
 
 
@@ -83,7 +83,7 @@ Index = 9
 Index = 10
 
 
-Da*not_too_deep*not_too_shallow*(1 - Phi)*(-cCa + delta)*Max(0, -KRat*cCO3*cCa + 1)**m2/Phi
+Da*(1 - Phi)*(-cCa + delta)*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)/Phi
 
 
 
@@ -99,7 +99,7 @@ Index = 11
 Index = 12
 
 
-Da*(1 - Phi)*(-cCa + delta)*(-CA*KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - CC*lambda_*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) - KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1))/Phi - Da*(1 - Phi)*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)/Phi
+Da*(1 - Phi)*(-cCa + delta)*(CA*(-KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)) - CC*lambda_*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)))/Phi - Da*(1 - Phi)*(CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1))/Phi
 
 
 
@@ -107,7 +107,7 @@ Da*(1 - Phi)*(-cCa + delta)*(-CA*KRat*cCO3*m2*not_too_deep*not_too_shallow*Heavi
 Index = 13
 
 
-Da*(1 - Phi)*(-cCa + delta)*(-CA*KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - CC*lambda_*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) - KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1))/Phi
+Da*(1 - Phi)*(-cCa + delta)*(CA*(-KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)) - CC*lambda_*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)))/Phi
 
 
 
@@ -115,7 +115,7 @@ Da*(1 - Phi)*(-cCa + delta)*(-CA*KRat*cCa*m2*not_too_deep*not_too_shallow*Heavis
 Index = 14
 
 
--Da*(-cCa + delta)*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)/Phi - Da*(1 - Phi)*(-cCa + delta)*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)/Phi**2
+-Da*(-cCa + delta)*(CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1))/Phi - Da*(1 - Phi)*(-cCa + delta)*(CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1))/Phi**2
 
 
 
@@ -123,7 +123,7 @@ Index = 14
 Index = 15
 
 
-Da*not_too_deep*not_too_shallow*(1 - Phi)*(-cCO3 + delta)*Max(0, -KRat*cCO3*cCa + 1)**m2/Phi
+Da*(1 - Phi)*(-cCO3 + delta)*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)/Phi
 
 
 
@@ -139,7 +139,7 @@ Index = 16
 Index = 17
 
 
-Da*(1 - Phi)*(-cCO3 + delta)*(-CA*KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - CC*lambda_*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) - KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1))/Phi
+Da*(1 - Phi)*(-cCO3 + delta)*(CA*(-KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)) - CC*lambda_*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)))/Phi
 
 
 
@@ -147,7 +147,7 @@ Da*(1 - Phi)*(-cCO3 + delta)*(-CA*KRat*cCO3*m2*not_too_deep*not_too_shallow*Heav
 Index = 18
 
 
-Da*(1 - Phi)*(-cCO3 + delta)*(-CA*KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - CC*lambda_*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) - KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1))/Phi - Da*(1 - Phi)*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)/Phi
+Da*(1 - Phi)*(-cCO3 + delta)*(CA*(-KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)) - CC*lambda_*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)))/Phi - Da*(1 - Phi)*(CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1))/Phi
 
 
 
@@ -155,7 +155,7 @@ Da*(1 - Phi)*(-cCO3 + delta)*(-CA*KRat*cCa*m2*not_too_deep*not_too_shallow*Heavi
 Index = 19
 
 
--Da*(-cCO3 + delta)*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)/Phi - Da*(1 - Phi)*(-cCO3 + delta)*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)/Phi**2
+-Da*(-cCO3 + delta)*(CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1))/Phi - Da*(1 - Phi)*(-cCO3 + delta)*(CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1))/Phi**2
 
 
 
@@ -163,7 +163,7 @@ Index = 19
 Index = 20
 
 
-Da*not_too_deep*not_too_shallow*(1 - Phi)*Max(0, -KRat*cCO3*cCa + 1)**m2
+Da*(1 - Phi)*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)
 
 
 
@@ -179,7 +179,7 @@ Index = 21
 Index = 22
 
 
-Da*(1 - Phi)*(-CA*KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - CC*lambda_*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) - KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1))
+Da*(1 - Phi)*(CA*(-KRat*cCO3*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)) - CC*lambda_*(cCO3*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCO3*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)))
 
 
 
@@ -187,7 +187,7 @@ Da*(1 - Phi)*(-CA*KRat*cCO3*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3
 Index = 23
 
 
-Da*(1 - Phi)*(-CA*KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1) - CC*lambda_*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)) - KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1))
+Da*(1 - Phi)*(CA*(-KRat*cCa*m1*nu1*Heaviside(KRat*cCO3*cCa - 1)*Max(0, KRat*cCO3*cCa - 1)**m1/Max(0, KRat*cCO3*cCa - 1) - KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*cCa + 1)*Max(0, -KRat*cCO3*cCa + 1)**m2/Max(0, -KRat*cCO3*cCa + 1)) - CC*lambda_*(cCa*n1*Heaviside(cCO3*cCa - 1)*Max(0, cCO3*cCa - 1)**n1/Max(0, cCO3*cCa - 1) + cCa*n2*nu2*Heaviside(-cCO3*cCa + 1)*Max(0, -cCO3*cCa + 1)**n2/Max(0, -cCO3*cCa + 1)))
 
 
 
@@ -195,6 +195,6 @@ Da*(1 - Phi)*(-CA*KRat*cCa*m2*not_too_deep*not_too_shallow*Heaviside(-KRat*cCO3*
 Index = 24
 
 
--Da*(CA*not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1) - nu1*Max(0, KRat*cCO3*cCa - 1)**m1)
+-Da*(CA*(not_too_deep*not_too_shallow*Max(0, -KRat*cCO3*cCa + 1)**m2 - nu1*Max(0, KRat*cCO3*cCa - 1)**m1) - CC*lambda_*(-nu2*Max(0, -cCO3*cCa + 1)**n2 + Max(0, cCO3*cCa - 1)**n1))
 
 

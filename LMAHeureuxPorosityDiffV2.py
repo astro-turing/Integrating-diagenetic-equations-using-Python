@@ -1,111 +1,9 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField, FieldBase
-from numba import jit
+from numba import njit, prange
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
-    
-""" def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
-    CO3Initial = None,PorInitial = None, AragoniteSurface = None, CalciteSurface = None,CaSurface = None,
-    CO3Surface = None,PorSurface = None,times = None,depths = None,sedimentationrate = None, k1 = None, 
-    k2 = None,k3 = None,k4 = None,m1 = None,m2 = None,n1 = None,n2 = None,b = None, beta = None,
-    rhos = None,rhow = None,rhos0 = None,KA = None,KC = None,muA = None,D0Ca = None,PhiNR = None,
-    PhiInfty = None,options = None,Phi0 = None,DCa = None,DCO3 = None,DeepLimit = None, 
-    ShallowLimit = None): 
-    ## Define Local constants
-    Xstar = D0Ca / sedimentationrate
-    
-    Tstar = Xstar / sedimentationrate
-    
-    xmesh = depths / Xstar
-    
-    tspan = times / Tstar
-    
-    Da = k2 * Tstar
-    
-    lambda_ = k3 / k2
-    
-    nu1 = k1 / k2
-    
-    nu2 = k4 / k3
-    
-    dCa = DCa / D0Ca
-    
-    dCO3 = DCO3 / D0Ca
-    
-    delta = rhos / (muA * np.sqrt(KC))
-    
-    KRat = KC / KA
-    
-    g = 100 * 9.81
-    
-    auxcon = beta / (D0Ca * b * g * rhow * (PhiNR - PhiInfty))
-    
-    rhorat0 = (rhos0 / rhow - 1) * beta / sedimentationrate
-    
-    rhorat = (rhos / rhow - 1) * beta / sedimentationrate
-    
-    presum = 1 - rhorat0 * Phi0 ** 3 * (1 - np.exp(10 - 10 / Phi0)) / (1 - Phi0)
-    
-    ## Define Initial conditions
-    InitialConditions = lambda depth = None: np.array([[AragoniteInitial(depth)],[CalciteInitial(depth)],
-                                                       [CaInitial(depth)],[CO3Initial(depth)],[PorInitial(depth)]])
-    ## Define Boundary conditions
-    
-    def BoundaryConditions(AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
-                           PorSurface, ul, t): 
-        #eq. 35 top
-        ql = np.array([[0],[0],[0],[0],[0]])
-        pl = np.array([[ul(1) - AragoniteSurface(t)],[ul(2) - CalciteSurface(t)],[ul(3) - CaSurface(t)],
-            [ul(4) - CO3Surface(t)],[ul(5) - PorSurface(t)]])
-        pr = np.array([[0],[0],[0],[0],[0]])
-        # eq 35 bottom
-        qr = np.array([[1],[1],[1],[1],[1]])
-        return pl,ql,pr,qr
-        
-    ## Define System of PDEs
-    def PDEDef(x = None,__ = None,u = None,dudx = None): 
-        ##System of PDEs of LHeureux, described in eqs. 40 to 43
-        #abbreciations for readability
-        CA = u(1)
-        CC = u(2)
-        cCa = u(3)
-        cCO3 = u(4)
-        Phi = u(5)
-        #formulas for compact representation
-    #dPhi=(auxcon*((Phi^3)/(1-Phi))*(1-exp(10-10/Phi))); # eq. 25 + 17 in comb with eq. 44
-        dPhislash = (auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
-                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))
-        #OmegaPA=max(0,cCa*cCO3*KRat-1)^m1; #eq. 45
-    #OmegaDA=(max(0,1-cCa*cCO3*KRat)^m2)*(x*Xstar <= DeepLimit && x*Xstar >= ShallowLimit); #eq. 45
-    #OmegaPC=max(0,cCa*cCO3-1)^n1; #eq. 45
-    #OmegaDC=max(0,1-cCa*cCO3)^n2; #eq. 45
-        coA = CA * (((np.amax(0,1 - cCa * cCO3 * KRat) ** m2) * (x * Xstar <= DeepLimit 
-              and x * Xstar >= ShallowLimit)) - nu1 * (np.amax(0,cCa * cCO3 * KRat - 1) ** m1))
-        coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** n1) - nu2 * (np.amax(0,1 - cCa * cCO3) ** n2))
-        U = (presum + rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
-        
-        W = (presum - rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi)))
-        
-        Wslash = - rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
-        #Describe eqs. 40 to 43
-        c = np.array([[1],[1],[Phi],[Phi],[1]])
-        
-        f = np.array([[0],[0],[Phi * dCa * dudx(3)],[Phi * dCO3 * dudx(4)],
-                     [(auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) 
-                     * dudx(5)]])
-        
-        s = np.array([[(- U * dudx(1) - Da * ((1 - CA) * coA + lambda_ * CA * coC))],
-                     [(- U * dudx(2) + Da * (lambda_ * (1 - CC) * coC + CC * coA))],
-                     [(- Phi * W * dudx(3) + Da * (1 - Phi) * (delta - cCa) * (coA - lambda_ * coC))],
-                     [(- Phi * W * dudx(4) + Da * (1 - Phi) * (delta - cCO3) * (coA - lambda_ * coC))],
-                     [(Da * (1 - Phi) * (coA - lambda_ * coC) - dudx(5) * (W + Wslash * Phi + dudx(5) * dPhislash))]])
-        return c,f,s
-    
-    ## Solve PDE
-    sol = pdepe(0,PDEDef,InitialConditions,BoundaryConditions,xmesh,tspan,options)
-    # return c,f,s
-    
-    return sol """
-
+from scipy.sparse import csr_matrix, find   
+from Compute_jacobian import Jacobian
 
 class LMAHeureuxPorosityDiff(PDEBase):
     """SIR-model with diffusive mobility"""
@@ -114,6 +12,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
                 sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, n2, 
                 b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, PhiInfty, 
                 DCa, DCO3, not_too_shallow, not_too_deep):  
+        self.no_fields = 5
         self.Depths = Depths    
         self.slices_for_all_fields = slices_for_all_fields
         self.bc_CA = [{"value": CA0}, {"curvature" : 0}]
@@ -274,42 +173,88 @@ class LMAHeureuxPorosityDiff(PDEBase):
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data.ravel()
 
     def fun_numba(self, t, y):
-        """ the numba-accelerated evolution equation """      
+        """ the numba-accelerated evolution equation """     
+        CA = y[self.CA_sl]
+        CC = y[self.CC_sl]
+        cCa = y[self.cCa_sl]
+        cCO3 = y[self.cCO3_sl]
+        Phi = y[self.Phi_sl]   
 
-        return LMAHeureuxPorosityDiff.pde_rhs(y, self.KRat, self.m1, self.m2, \
-            self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
-            self.not_too_shallow, self.presum, self.rhorat, self.lambda_, \
-            self.Da, self.dCa, self.dCO3, self.delta, self.auxcon, self.CA_sl, \
-            self.CC_sl, self.cCa_sl, self.cCO3_sl, self.Phi_sl, \
+        rhs = LMAHeureuxPorosityDiff.pde_rhs(CA, CC, cCa, cCO3, Phi, self.KRat, \
+            self.m1, self.m2, self.n1, self.n2, self.nu1, self.nu2, \
+            self.not_too_deep, self.not_too_shallow, self.presum, self.rhorat, \
+            self.lambda_, self.Da, self.dCa, self.dCO3, self.delta, self.auxcon, \
             self.gradient_CA, self.gradient_CC, self.gradient_cCa, \
-            self.gradient_cCO3,self.gradient_Phi, self.laplace_Phi)
+            self.gradient_cCO3,self.gradient_Phi, self.laplace_Phi, \
+            no_depths = self.Depths.shape[0])
 
-    @jit(nopython = True, nogil= True, cache = True, parallel = True)
-    def pde_rhs(y, KRat, m1, m2, n1, n2, nu1, nu2, \
+        # print("Right-hand side evaluated")
+
+        return rhs
+
+    def jac(self, t, y):
+
+        CA = y[self.CA_sl]
+        CC = y[self.CC_sl]
+        cCa = y[self.cCa_sl]
+        cCO3 = y[self.cCO3_sl]
+        Phi = y[self.Phi_sl]  
+
+        jacob_csr = csr_matrix(Jacobian(CA, CC, cCa, cCO3, Phi, \
+            self.KRat, self.m1, self.m2, \
+            self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
+            self.not_too_shallow, self.lambda_, \
+            self.Da, self.delta, \
+            no_depths = self.Depths.shape[0], no_fields = self.no_fields))
+
+        # Check that we should have 5**2 sets of Jacobian values for 5 fields,
+        # with each set comprised of no_depth numbers.
+        """     no_sets_of_jacobian_values = len(all_jac_values_rows_and_cols)
+        assert no_sets_of_jacobian_values == self.no_fields ** 2
+       
+        no_depths = self.Depths.shape[0]
+        n = self.no_fields * no_depths
+        jacob_csr = csr_matrix((n, n))
+ 
+        for item in all_jac_values_rows_and_cols: """
+            # item[0] are the self.Depths.shape[0] Jacobian values.
+            # item[1] is a tuple of self.Depths.shape[0] row indices and
+            # self.Depths.shape[0] column indices.
+            # This loop fills the sparse matrix.
+        """     data, row_and_col = item
+            jacob_csr += csr_matrix((data, row_and_col), shape = (n, n)) """
+
+        # Check that the non-zero values in the Jacobian occur ath the same 
+        # indices as the Jacobian sparsity matrix.
+        # Perhaps we do not need this check for every computation of the
+        # Jacobian.
+        """ sparsity_matrix = self.jacobian_sparsity()
+        nonzero_sparsity = find(sparsity_matrix)
+        nonzero_jacobian = find(jacob_csr) """
+        # print("Jacobian matrix evaluated")
+        # assert np.allclose(nonzero_sparsity[0], nonzero_jacobian[0]) 
+        # assert np.allclose(nonzero_sparsity[1], nonzero_jacobian[1])       
+
+        return jacob_csr
+
+    @njit(nogil = True, parallel = True, fastmath = True, cache = True)
+    def pde_rhs(CA, CC, cCa, cCO3, Phi, KRat, m1, m2, n1, n2, nu1, nu2, \
             not_too_deep, not_too_shallow, presum, rhorat, lambda_, Da, dCa, \
-            dCO3, delta, auxcon, CA_sl, CC_sl, cCa_sl, cCO3_sl, Phi_sl, \
-            gradient_CA, gradient_CC, gradient_cCa, gradient_cCO3,\
-            gradient_Phi, laplace_Phi):
+            dCO3, delta, auxcon, gradient_CA, gradient_CC, gradient_cCa, \
+            gradient_cCO3,gradient_Phi, laplace_Phi, no_depths):
         """ compiled helper function evaluating right hand side """
-        CA = y[CA_sl]
         CA_grad = gradient_CA(CA)[0]
-        CC = y[CC_sl]
         CC_grad = gradient_CC(CC)[0]
-        cCa = y[cCa_sl]
         cCa_grad = gradient_cCa(cCa)[0]
-        cCO3 = y[cCO3_sl]
         cCO3_grad = gradient_cCO3(cCO3)[0]
-        Phi = y[Phi_sl]
         Phi_laplace = laplace_Phi(Phi)
 
-        helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad)[0]
-        helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad)[0]
+        # Implementing equation 6 from l'Heureux.
+        denominator = 1 - 2 * np.log(Phi)
+        helper_cCa_grad = gradient_cCa(Phi * dCa * cCa_grad/denominator)[0]
+        helper_cCO3_grad = gradient_cCO3(Phi * dCO3 * cCO3_grad/denominator)[0]
 
-        rate = np.empty_like(y)
-
-        # state_data.size should be the same as len(CA) or len(CC), check this.
-        # So the number of depths, really.
-        no_depths = CA.size
+        rate = np.empty(5 * no_depths)
 
         two_factors = np.empty(no_depths)
         two_factors_upp_lim = np.empty(no_depths)
@@ -323,7 +268,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         W = np.empty(no_depths)
         F = np.empty(no_depths)
 
-        for i in range(no_depths):
+        for i in prange(no_depths):
             F[i] = 1 - np.exp(10 - 10 / Phi[i])
 
             U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
@@ -334,7 +279,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         dPhi = np.empty(no_depths)
 
-        for i in range(no_depths):
+        for i in prange(no_depths):
             two_factors[i] = cCa[i] * cCO3[i]
             two_factors_upp_lim[i] = min(two_factors[i],1)
             two_factors_low_lim[i] = max(two_factors[i],1)
@@ -350,21 +295,21 @@ class LMAHeureuxPorosityDiff(PDEBase):
                 (1 - two_factors_upp_lim[i]) ** n2)
             
             # This is dCA_dt
-            rate[CA_sl.start + i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
+            rate[i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
                                     * coA[i] + lambda_ * CA[i] * coC[i])
 
             # This is dCC_dt
-            rate[CC_sl.start + i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
+            rate[no_depths + i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
                                     (1 - CC[i]) * coC[i] + CC[i] * coA[i])
 
             # This is dcCa_dt
-            rate[cCa_sl.start + i] =  helper_cCa_grad[i]/Phi[i] -W[i] * \
+            rate[2 * no_depths + i] =  helper_cCa_grad[i]/Phi[i] -W[i] * \
                                         cCa_grad[i] + Da * (1 - Phi[i]) * \
                                         (delta - cCa[i]) * (coA[i] - lambda_ \
                                         * coC[i])/Phi[i]
 
             # This is dcCO3_dt
-            rate[cCO3_sl.start + i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * \
+            rate[3 * no_depths + i] =  helper_cCO3_grad[i]/Phi[i] -W[i] * \
                                         cCO3_grad[i] + Da * (1 - Phi[i]) * \
                                         (delta - cCO3[i]) * (coA[i] - \
                                         lambda_ * coC[i])/Phi[i]
@@ -372,9 +317,24 @@ class LMAHeureuxPorosityDiff(PDEBase):
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / (1 - Phi[i])        
 
             # This is dPhi_dt
-            rate[Phi_sl.start + i] = - helper_Phi_grad[i] + dPhi[i] * \
+            rate[4 * no_depths + i] = - helper_Phi_grad[i] + dPhi[i] * \
                                         Phi_laplace[i] + Da * (1 - Phi[i]) \
                                         * (coA[i] - lambda_ * coC[i])
         return rate
 
-        
+    def jacobian_sparsity(self):
+        no_depths = self.Depths.shape[0]
+        n = self.no_fields * no_depths
+        jacob_csr = csr_matrix((n, n))
+        data = np.ones(no_depths)
+        row = np.arange(no_depths)
+        col = np.arange(no_depths)
+        for i in range(self.no_fields):
+            for j in range(self.no_fields):
+                if i < self.no_fields - 1 or j > 1:
+                    jacob_csr += csr_matrix((data, (i * no_depths + row, \
+                        j * no_depths + col)), shape = (n, n))
+
+        return jacob_csr
+
+
