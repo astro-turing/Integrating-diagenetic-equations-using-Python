@@ -9,15 +9,16 @@ from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
 from pde import CartesianGrid, ScalarField
 from scipy.integrate import solve_ivp
 import time
+from tqdm import tqdm
 
 Scenario = 'A'
 CA0 = 0.6
 CAIni = CA0
 CC0 = 0.3
 CCIni = CC0
-cCa0 = 0.326
+cCa0 = 0.326e-3
 cCaIni = cCa0
-cCO30 = 0.326
+cCO30 = 0.326e-3
 cCO3Ini = cCO30
 Phi0 = 0.6
 PhiIni = 0.5
@@ -58,7 +59,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 500
+number_of_depths = 1000
 
 max_depth = 500
 
@@ -91,41 +92,86 @@ depths = ScalarField.from_expression(Depths, "x").data * Xstar
 
 # Let us try to reach 710 years, like Niklas.
 end_time = Tstar/Tstar
-number_of_steps = 1e7
-time_step = end_time/number_of_steps
-# t_eval = np.linspace(0,end_time, num = int(number_of_steps))
+# number_of_steps = 1e7
+# time_step = end_time/number_of_steps
+# Number of times to evaluate.
+no_t_eval = 100
+# t_eval = np.logspace(np.log10(end_time/no_t_eval), np.log10(end_time), no_t_eval)
+t_eval = np.linspace(0, end_time, num = no_t_eval)
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
-y0 = state.data.ravel()               
+y0 = state.data.ravel()   
+
+number_of_progress_updates = 100000
 
 start_computing = time.time()
-sol = solve_ivp(eq.fun_numba, (0, end_time), y0, atol = 1e-10, rtol = 1e-10, \
-                method="BDF", vectorized = False,\
-                first_step = time_step, jac = eq.jac)
+with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
+    sol = solve_ivp(fun = eq.fun_numba, t_span = (0, end_time), y0 = y0, \
+                atol = 1e-3, rtol = 1e-3, t_eval= t_eval, \
+                events = [eq.zeros, eq.zeros_CA, eq.zeros_CC, \
+                eq.ones_CA_plus_CC, eq.ones_Phi],  \
+                method="BDF", dense_output= True,\
+                first_step = None, jac = eq.jac, \
+                args=[pbar, [0, 1/number_of_progress_updates]])
 end_computing = time.time()
 
-print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
-
-""" print("sol.status = {0}, sol.success =  {1}".format(sol.status, sol.success))
 print()
-print("sol.t = {0}, sol.y =  {1}".format(sol.t, sol.y)) """
+print("Number of rhs evaluations = {0}".format(sol.nfev))
+print()
+print("Number of Jacobian evaluations = {0}".format(sol.njev))
+print()
+print("Number of LU decompositions = {0}".format(sol.nlu))
+print()
+print("Status = {0}".format(sol.status))
+print()
+print("Success = {0}".format(sol.success))
+print()
+v = sol.t_events[0]
+print(("Times, in years, at which any field at any depth was below zero: "\
+      +', '.join(['%.2f']*len(v))+"") % tuple([Tstar * time for time in v]))
+print()
+w = sol.t_events[1]
+print(("Times, in years, at which CA at any depth was below zero: "\
+      +', '.join(['%.2f']*len(w))+"") % tuple([Tstar * time for time in w]))
+print()
+x = sol.t_events[2]
+print(("Times, in years, at which CC at any depth was below zero: "\
+      +', '.join(['%.2f']*len(x))+"") % tuple([Tstar * time for time in x]))
+print()
+y = sol.t_events[3]
+print(("Times, in years, at which CA + CC at any depth was larger than 1: "\
+      +', '.join(['%.2f']*len(y))+"") % tuple([Tstar * time for time in y]))
+print()
+z = sol.t_events[4]
+print(("Times, in years, at which the porosity at any depth was larger than 1: "\
+      +', '.join(['%.2f']*len(z))+"") % tuple([Tstar * time for time in z]))
+print()
+print("Message from solve_ivp = {0}".format(sol.message))
+print()
+print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
+print()
 
-fig, (ax0, ax1, ax2, ax3, ax4) = plt.subplots(5, 1, figsize = (5, 25))
-ax0.plot(depths, (sol.y)[slices_for_all_fields[0], -1], label = "CA")
-ax0.legend(loc='upper right')
-ax1.plot(depths, (sol.y)[slices_for_all_fields[1], -1], label = "CC")
-ax1.legend(loc='upper right')
-ax2.plot(depths, (sol.y)[slices_for_all_fields[2], -1], label = "cCa")
-ax2.legend(loc='upper right')
-ax3.plot(depths, (sol.y)[slices_for_all_fields[3], -1], label = "cCO3")
-ax3.legend(loc='upper right')
-ax4.plot(depths, (sol.y)[slices_for_all_fields[4], -1], label = "Phi")
-ax4.legend(loc='upper right')
+if sol.status == 0:
+    covered_time = Tstar * end_time
+else:
+   covered_time = pbar.n * Tstar/number_of_progress_updates 
 
-fig.tight_layout()
-fig.savefig("../Results/Final_compositions_and_concentrations_" + datetime.now().\
+plt.title("Situation after " + " {:.2f} ".format(covered_time) + " years")
+# Marker size
+ms = 3
+plt.plot(depths, (sol.y)[slices_for_all_fields[0], -1], "v", ms = ms, label = "CA")
+plt.plot(depths, (sol.y)[slices_for_all_fields[1], -1], "^", ms = ms, label = "CC")
+plt.plot(depths, (sol.y)[slices_for_all_fields[2], -1], ">", ms = ms, label = "cCa")
+plt.plot(depths, (sol.y)[slices_for_all_fields[3], -1], "<", ms = ms, label = "cCO3")
+plt.plot(depths, (sol.y)[slices_for_all_fields[4], -1], "o", ms = ms, label = "Phi")
+plt.xlabel("Depth (cm)")
+plt.ylabel("Compositions and concentrations (dimensionless)")
+plt.legend(loc='upper right')
+
+plt.tight_layout()
+plt.savefig("../Results/Final_compositions_and_concentrations_" + datetime.now().\
                       strftime("%d_%m_%Y_%H_%M_%S") + ".png")
 # plt.plot(depths,sol(timeslice,:,5))
 ## Componentwise Plots
