@@ -207,14 +207,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         pbar and state, as in jac, where I need them for 
         tqdm progress display.
         However, for this rhs calculation, they are redundant. """
-        """ For tqdm to monitor progress. """
-        """ From 
-        https://stackoverflow.com/questions/59047892/how-to-monitor-the-process-of-scipy-odeint """
-        last_t, dt = state
-        n = int((t - last_t)/dt)
-        pbar.update(n)
-        # this we need to take into account that n is a rounded number.
-        state[0] = last_t + dt * n
 
         """ the numba-accelerated evolution equation """     
         CA = ScalarField(self.Depths, y[self.slices_for_all_fields[0]])
@@ -585,5 +577,4 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # assert np.allclose(nonzero_sparsity[1], nonzero_jacobian[1])       
 
         return jacob_csr
-
 
