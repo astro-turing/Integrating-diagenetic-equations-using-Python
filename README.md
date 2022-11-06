@@ -1,5 +1,4 @@
-# 
-Integrating diagenetic equations using Python
+# Integrating diagenetic equations using Python
 
 This repo was created as an attempt to reproduce the plots shown at the kickoff of the AstroTOM ("Turing or Milankovitch") project by Niklas Hohmann, from his Matlab scripts. 
 
