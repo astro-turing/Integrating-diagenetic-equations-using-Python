@@ -5,19 +5,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
-from pde import CartesianGrid, ScalarField, FileStorage
+from pde import CartesianGrid, ScalarField, FileStorage, plot_kymographs
 from pde import Controller, PlotTracker, PrintTracker, RealtimeIntervals
-from pde import ScipySolver
+from pde import ScipySolver, ExplicitSolver
+from pde.grids.operators.cartesian import _make_derivative
 import time
 
 Scenario = 'A'
+
+KA = 10 ** (- 6.19)
+KC = 10 ** (- 6.37)
 CA0 = 0.6
 CAIni = CA0
 CC0 = 0.3
 CCIni = CC0
-cCa0 = 0.326
+cCa0 = 0.326e-3/np.sqrt(KC)
 cCaIni = cCa0
-cCO30 = 0.326
+cCO30 = 0.326e-3/np.sqrt(KC)
 cCO3Ini = cCO30
 Phi0 = 0.6
 PhiIni = 0.5
@@ -31,9 +35,6 @@ m1 = 2.48
 m2 = m1
 n1 = 2.8
 n2 = n1
-KA = 10 ** (- 6.19)
-
-KC = 10 ** (- 6.37)
 rhos0 = 2.95 * CA0 + 2.71 * CC0 + 2.8 * (1 - (CA0 + CC0))
 
 rhos = rhos0
@@ -59,6 +60,13 @@ Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
 depths = CartesianGrid([[0, 502/Xstar]], [400], periodic=False)
+# We will be needing forward and backward differencing for
+# Fiadeiro-Veronis differentiation.
+CartesianGrid.register_operator("grad_back", \
+    lambda grid: _make_derivative(grid, method="backward"))
+CartesianGrid.register_operator("grad_forw", \
+    lambda grid: _make_derivative(grid, method="forward"))
+
 AragoniteSurface = ScalarField(depths, CAIni)
 CalciteSurface = ScalarField(depths, CCIni)
 CaSurface = ScalarField(depths, cCaIni)
@@ -81,7 +89,7 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             not_too_shallow, not_too_deep)             
 
 # Let us try to years 710 years, like Niklas.
-end_time = 10/Tstar
+end_time = Tstar/Tstar
 number_of_steps = 1e4
 time_step = end_time/number_of_steps
 # tspan = np.arange(0,end_time+time_step, time_step)
@@ -90,18 +98,20 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
                      CO3Surface, PorSurface)
 
 # simulate the pde
-# tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
-storage = FileStorage("../Results/LMAHeureuxPorosityDiff_" + datetime.now().\
-                      strftime("%d_%m_%Y_%H_%M_%S") + ".npz")
+tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
+stored_results = "../Results/LMAHeureuxPorosityDiff_" + datetime.now().\
+                      strftime("%d_%m_%Y_%H_%M_%S") + ".npz"
+storage = FileStorage(stored_results)
 
-""" sol, info = eq.solve(state, t_range=tspan.max(), dt=time_step, method="explicit", \
-               scheme = "rk", tracker=["progress", storage.tracker(0.01)], ret_info = True)
+sol, info = eq.solve(state, t_range=end_time, dt=time_step, method="explicit", \
+               scheme = "rk", tracker=["progress", storage.tracker(0.01)], \
+               backend = "numba", ret_info = True, adaptive = True)
 
 print("Meta-information about the solution : {}".format(info))        
 
-sol.plot() """
+sol.plot()
 
-trackers = [
+""" trackers = [
     "progress",  # show progress bar during simulation
     "steady_state",  # abort when steady state is reached
     storage.tracker(interval=1),  # store data every simulation time unit
@@ -113,7 +123,8 @@ trackers = [
 
 solver = ScipySolver(eq, method = "Radau", vectorized = False, backend="numba",\
                      first_step = time_step)
-""" solver = ExplicitSolver(eq, scheme="rk", adaptive=True, backend="numba", tolerance=1e-2)  """  
+solver = ExplicitSolver(eq, scheme="rk", adaptive=True, \
+    backend="numba", tolerance=1e-2)   
 controller1 = Controller(solver, t_range = (0, end_time), tracker=trackers)
 
 start_computing = time.time()
@@ -122,46 +133,12 @@ sol = controller1.run(state, dt = time_step)
 
 end_computing = time.time()
 
-print("Time taken for running the controller is {0:.2f}s.".format(end_computing - start_computing))
+print("Time taken for running the controller is {0:.2f}s.".\
+    format(end_computing - start_computing))
 print()
 
 sol.label = "Explicit solver"
 print("Diagnostic information:")
 print(controller1.diagnostics)
 
-sol.plot()
-
-
-# plt.plot(depths,sol(timeslice,:,5))
-## Componentwise Plots
-# timeslice = 5
-# tiledlayout(5,1)
-# nexttile
-# plt.plot(depths,sol(timeslice,:,1))
-# plt.xlabel('Depth (cm)')
-# plt.title('Aragonite')
-# plt.ylim(np.array([0,1]))
-# plt.xlim(np.array([0,np.amax(depths)]))
-# nexttile
-# plt.plot(depths,sol(timeslice,:,2))
-# plt.xlabel('Depth (cm)')
-# plt.title('Calcite')
-# plt.ylim(np.array([0,1]))
-# plt.xlim(np.array([0,np.amax(depths)]))
-# nexttile
-# plt.plot(depths,sol(timeslice,:,3))
-# plt.xlabel('Depth (cm)')
-# plt.title('Ca')
-# plt.xlim(np.array([0,np.amax(depths)]))
-# nexttile
-# plt.plot(depths,sol(timeslice,:,4))
-# plt.xlabel('Depth (cm)')
-# plt.title('CO3')
-# plt.xlim(np.array([0,np.amax(depths)]))
-# nexttile
-# plt.plot(depths,sol(timeslice,:,5))
-# plt.xlabel('Depth (cm)')
-# plt.title('Porosity')
-# plt.ylim(np.array([0,1]))
-# plt.xlim(np.array([0,np.amax(depths)]))
-# sgtitle(join(np.array([num2str(times(timeslice)),' Years'])))
+sol.plot() """
