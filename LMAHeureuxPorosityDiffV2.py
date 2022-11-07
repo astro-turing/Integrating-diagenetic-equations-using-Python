@@ -3,6 +3,20 @@ from pde import FieldCollection, PDEBase, ScalarField
 from numba import njit, prange
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
     
+@njit
+def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
+    # Assuming the arrays are 1D.
+    sigma = np.empty(Peclet.shape[0])
+    for i in range(sigma.shape[0]):
+        if Peclet[i] < Peclet_min:
+            sigma[i] = 0
+        elif Peclet[i] > Peclet_max:
+            sigma[i] = np.sign(W_data[i])
+        else:
+            sigma[i] = np.cosh(Peclet[i])/np.sinh(Peclet[i]) - \
+                1/Peclet[i]
+    return sigma
+
 class LMAHeureuxPorosityDiff(PDEBase):
     """SIR-model with diffusive mobility"""
 
@@ -68,13 +82,15 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.presum = 1 - self.rhorat0 * self.Phi0 ** 3 * \
                  (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)     
 
-        # Fiadeiro-Veronis integration involves a coth and a reciprocal, which can
+        # Fiadeiro-Veronis differentiation involves a coth and a reciprocal, which can
         # easily lead to FloatingPointError: overflow encountered in double_scalars.
         # To avoid this, better revert to either backwards or central differencing 
         # the Peclet number is very large or very small.
         self.Peclet_min = 1e-2
         self.Peclet_max = 1/self.Peclet_min
-        self.check_implementation = False
+        # Need this number for Fiadeiro-Veronis differentiation.
+        self.delta_x = self.AragoniteSurface.grid._axes_coords[0][1] - \
+                       self.AragoniteSurface.grid._axes_coords[0][0]
 
     def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
@@ -91,9 +107,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
     def evolution_rate(self, state, t=0):
         CA, CC, cCa, cCO3, Phi = state   
-
-        # dPhislash = (self.auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
-        #            (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))    
 
         two_factors = cCa * cCO3
         two_factors_upp_lim = two_factors.to_scalar(lambda f: np.fmin(f,1))
@@ -113,31 +126,81 @@ class LMAHeureuxPorosityDiff(PDEBase):
         F = 1 - np.exp(10 - 10 / Phi)
 
         U = self.presum + self.rhorat * Phi ** 3 * F / (1 - Phi)
-        
+
+        # Choose either forward or backward differencing for CA and CC
+        # depending on the sign of U
+
+        CA_grad_back = CA._apply_operator("grad_back", self.bc_CA)
+        CA_grad_forw = CA._apply_operator("grad_forw", self.bc_CA)
+        CA_grad = ScalarField(state.grid, np.where(U.data>0, CA_grad_back.data, \
+            CA_grad_forw.data))
+
+        CC_grad_back = CC._apply_operator("grad_back", self.bc_CC)
+        CC_grad_forw = CC._apply_operator("grad_forw", self.bc_CC)
+        CC_grad = ScalarField(state.grid, np.where(U.data>0, CC_grad_back.data, \
+            CC_grad_forw.data))
+
         W = self.presum - self.rhorat * Phi ** 2 * F
         
-        dCA_dt = - U * CA.gradient(self.bc_CA) - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
+        dCA_dt = - U * CA_grad - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
 
-        dCC_dt = - U * CC.gradient(self.bc_CC) + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
+        dCC_dt = - U * CC_grad + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
 
-        dcCa_dx = cCa.gradient(self.bc_cCa)[0]
+        # Implementing equation 6 from l'Heureux.
+        denominator = 1 - 2 * ScalarField(state.grid, np.log(Phi.data))
 
-        dcCa_dt = ((Phi * self.dCa * dcCa_dx).gradient(self.bc_cCa))/Phi -W * dcCa_dx \
-                  + self.Da * (1 - Phi) * (self.delta - cCa) * (coA - self.lambda_ * coC)/Phi
+        # Fiadeiro-Veronis scheme for equations 42 and 43
+        # from l'Heureux. 
+        Peclet_cCa = W.data * self.delta_x * denominator.data/ (2. * self.dCa )       
+        sigma_cCa = calculate_sigma(Peclet_cCa, W.data, \
+                        self.Peclet_min, self.Peclet_max)
 
-        dcCO3_dx = cCO3.gradient(self.bc_cCO3)[0]
+        Peclet_cCO3 = W.data * self.delta_x * denominator.data/ (2. * self.dCO3)       
+        sigma_cCO3 = calculate_sigma(Peclet_cCO3, W.data, \
+                        self.Peclet_min, self.Peclet_max)
 
-        dcCO3_dt = (Phi * self.dCO3 * dcCO3_dx).gradient(self.bc_cCO3)/Phi \
-                   -W * dcCO3_dx + self.Da * (1 - Phi) * (self.delta - cCO3) * \
-                   (coA - self.lambda_ * coC)/Phi
+        one_minus_Phi = 1 - Phi
+        dPhi = self.auxcon * F * (Phi ** 3) / one_minus_Phi
 
-        dPhi = self.auxcon * F * (Phi ** 3) / (1 - Phi)
+        Peclet_Phi = W.data * self.delta_x * denominator.data/ (2. * dPhi.data)       
+        sigma_Phi = calculate_sigma(Peclet_Phi, W.data, \
+                        self.Peclet_min, self.Peclet_max)
+
+        cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
+        cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)
+        cCa_grad = ScalarField(state.grid, 0.5 * ((1-sigma_cCa) * cCa_grad_forw + \
+                          (1+sigma_cCa) * cCa_grad_back))
+
+        cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
+        cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
+        cCO3_grad = ScalarField(state.grid, 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw + \
+                          (1+sigma_cCO3) * cCO3_grad_back))
+
+        Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
+        Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
+        Phi_grad = ScalarField(state.grid, 0.5 * ((1-sigma_Phi) * Phi_grad_forw + \
+                          (1+sigma_Phi) * Phi_grad_back))
+
+        Phi_denom = Phi/denominator
+        grad_Phi_denom = Phi_grad * (denominator + 2) / denominator ** 2
+
+        common_helper = coA - self.lambda_ * coC
+
+        dcCa_dt = (cCa_grad * grad_Phi_denom + Phi_denom * cCa.laplace(self.bc_cCa)) \
+                  * self.dCa /Phi -W * cCa_grad \
+                  + self.Da * one_minus_Phi * (self.delta - cCa) * common_helper / Phi
+
+        dcCO3_dt = (cCO3_grad * grad_Phi_denom + Phi_denom * cCO3.laplace(self.bc_cCO3)) \
+                   * self.dCO3/Phi -W * cCO3_grad \
+                   + self.Da * one_minus_Phi * (self.delta - cCO3) * common_helper / Phi
+
+        dW_dx = -self.rhorat * Phi_grad * (2 * Phi * F + 10 * (F - 1))
 
         # This is closer to the original form of (43) from l' Heureux than
         # the Matlab implementation.
-        dPhi_dt = - (W * Phi).gradient(self.bc_Phi) \
+        dPhi_dt = - (Phi * dW_dx + W * Phi_grad) \
                   + dPhi * Phi.laplace(self.bc_Phi) \
-                  + self.Da * (1 - Phi) * (coA - self.lambda_ * coC)
+                  + self.Da * one_minus_Phi * common_helper
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])
 
