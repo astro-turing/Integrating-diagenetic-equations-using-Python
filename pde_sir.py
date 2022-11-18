@@ -18,6 +18,9 @@ Here, :math:`D` is the diffusivity, :math:`\beta` the infection rate, and
 """
 
 from pde import FieldCollection, PDEBase, PlotTracker, ScalarField, UnitGrid
+from pde import Controller, ScipySolver
+import numba as nb
+import numpy as np
 
 
 class SIRPDE(PDEBase):
@@ -52,6 +55,34 @@ class SIRPDE(PDEBase):
         dr_dt = diff * r.laplace(self.bc) + self.gamma * i
         return FieldCollection([ds_dt, di_dt, dr_dt])
 
+    def Jacobian(self, state, t=0):
+        diff = self.diffusivity
+        beta = self.beta
+        gamma = self.gamma
+
+        @nb.jit
+        def jacobian(state_data, t):
+            s = state_data[0]
+            i = state_data[1]
+            r = state_data[2]
+
+            jacob = np.empty((3, 3))
+            jacob[0,0] = -beta*i
+            jacob[0,1] = -beta*s
+            jacob[0,2] = 0
+            jacob[1,0] = beta*i
+            jacob[1,1] = beta*s - gamma
+            jacob[1,2] = 0
+            jacob[2,0] = 0
+            jacob[2,1] = gamma
+            jacob[2,2] = 0
+
+            return jacob
+
+        return jacobian
+
+
+
 
 eq = SIRPDE(beta=2, gamma=0.1)
 
@@ -64,4 +95,9 @@ state = eq.get_state(s, i)
 
 # simulate the pde
 tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1})
-sol = eq.solve(state, t_range=50, dt=1e-2, tracker=["progress", tracker])
+# sol = eq.solve(state, t_range=50, dt=1e-2, tracker=["progress", tracker])
+single = np.array([[1,1,0],[1,1,0],[0,1,0]])
+jacob_nonzero = np.tile(single, grid.shape[0]*grid.shape[1])
+solver = ScipySolver(eq, method = "Radau", jac_sparsity = jacob_nonzero)
+controller = Controller(solver, t_range=50, tracker=["progress", tracker])
+sol = controller.run(state)

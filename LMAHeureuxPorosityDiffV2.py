@@ -1,102 +1,416 @@
 import numpy as np
+from pde import FieldCollection, PDEBase, ScalarField
+from numba import njit, prange
+np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
     
-def LMAHeureuxPorosityDiffV2(AragoniteInitial = None,CalciteInitial = None,CaInitial = None,
-    CO3Initial = None,PorInitial = None, AragoniteSurface = None, CalciteSurface = None,CaSurface = None,
-    CO3Surface = None,PorSurface = None,times = None,depths = None,sedimentationrate = None, k1 = None, 
-    k2 = None,k3 = None,k4 = None,m1 = None,m2 = None,n1 = None,n2 = None,b = None, beta = None,
-    rhos = None,rhow = None,rhos0 = None,KA = None,KC = None,muA = None,D0Ca = None,PhiNR = None,
-    PhiInfty = None,options = None,Phi0 = None,DCa = None,DCO3 = None,DeepLimit = None, 
-    ShallowLimit = None): 
-    ## Define Local constants
-    Xstar = D0Ca / sedimentationrate
-    
-    Tstar = Xstar / sedimentationrate
-    
-    xmesh = depths / Xstar
-    
-    tspan = times / Tstar
-    
-    Da = k2 * Tstar
-    
-    lambda_ = k3 / k2
-    
-    nu1 = k1 / k2
-    
-    nu2 = k4 / k3
-    
-    dCa = DCa / D0Ca
-    
-    dCO3 = DCO3 / D0Ca
-    
-    delta = rhos / (muA * np.sqrt(KC))
-    
-    KRat = KC / KA
-    
-    g = 100 * 9.81
-    
-    auxcon = beta / (D0Ca * b * g * rhow * (PhiNR - PhiInfty))
-    
-    rhorat0 = (rhos0 / rhow - 1) * beta / sedimentationrate
-    
-    rhorat = (rhos / rhow - 1) * beta / sedimentationrate
-    
-    presum = 1 - rhorat0 * Phi0 ** 3 * (1 - np.exp(10 - 10 / Phi0)) / (1 - Phi0)
-    
-    ## Define Initial conditions
-    InitialConditions = lambda depth = None: np.array([[AragoniteInitial(depth)],[CalciteInitial(depth)],
-                                                       [CaInitial(depth)],[CO3Initial(depth)],[PorInitial(depth)]])
-    ## Define Boundary conditions
-    
-    def BoundaryConditions(AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, PorSurface, ul, t): 
-        #eq. 35 top
-        ql = np.array([[0],[0],[0],[0],[0]])
-        pl = np.array([[ul(1) - AragoniteSurface(t)],[ul(2) - CalciteSurface(t)],[ul(3) - CaSurface(t)],
-            [ul(4) - CO3Surface(t)],[ul(5) - PorSurface(t)]])
-        pr = np.array([[0],[0],[0],[0],[0]])
-        # eq 35 bottom
-        qr = np.array([[1],[1],[1],[1],[1]])
-        return pl,ql,pr,qr
+class LMAHeureuxPorosityDiff(PDEBase):
+    """SIR-model with diffusive mobility"""
+
+    def __init__(self, AragoniteSurface, CalciteSurface, CaSurface, 
+                CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, Phi0, 
+                sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, 
+                n2, b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, 
+                PhiInfty, DCa, DCO3, not_too_shallow, not_too_deep):
+
+        self.AragoniteSurface = AragoniteSurface
+        self.CalciteSurface = CalciteSurface
+        self.CaSurface = CaSurface
+        self.CO3Surface = CO3Surface
+        self.PorSurface = PorSurface
+        self.bc_CA = [{"value": CA0}, {"curvature" : 0}]
+        self.bc_CC = [{"value": CC0}, {"curvature": 0}]
+        self.bc_cCa = [{"value": cCa0}, {"derivative": 0}]
+        self.bc_cCO3 = [{"value": cCO30}, {"derivative": 0}]
+        self.bc_Phi = [{"value": Phi0}, {"derivative": 0}]
+        self.sedimentationrate = sedimentationrate
+        self.Xstar = Xstar
+        self.Tstar = Tstar
+        self.k1 = k1
+        self.k2 = k2
+        self.nu1 = k1/k2
+        self.k3 = k3
+        self.k4 = k4
+        self.nu2 = k4/k3
+        self.m1 = m1
+        self.m2 = m2
+        self.n1 = n1
+        self.n2 = n2
+        self.b = b
+        self.beta = beta
+        self.rhos = rhos
+        self.rhow = rhow
+        self.rhos0 = rhos0
+        self.KA = KA
+        self.KC = KC
+        self.KRat = self.KC/self.KA
+        self.muA = muA
+        self.D0Ca = D0Ca
+        self.PhiNR = PhiNR
+        self.PhiInfty = PhiInfty 
+        self.Phi0 = Phi0
+        self.DCa = DCa
+        self.DCO3 = DCO3
+        self.not_too_shallow = not_too_shallow
+        self.not_too_deep = not_too_deep
+
+        self.g = 100 * 9.81
+        self.dCa = self.DCa / self.D0Ca
+        self.dCO3 = self.DCO3 / self.D0Ca
+        self.delta = self.rhos / (self.muA * np.sqrt(self.KC))
+        self.Da = self.k2 * self.Tstar
+        self.lambda_ = self.k3 / self.k2
+        self.auxcon = self.beta / (self.D0Ca * self.b * self.g * self.rhow * \
+                 (self.PhiNR - self.PhiInfty))
+        self.rhorat0 = (self.rhos0 / self.rhow - 1) * self.beta / \
+                  self.sedimentationrate
+        self.rhorat = (self.rhos / self.rhow - 1) * self.beta / \
+                 self.sedimentationrate
+        self.presum = 1 - self.rhorat0 * self.Phi0 ** 3 * \
+                 (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)     
+
+        # Fiadeiro-Veronis differentiation involves a coth and a reciprocal, which can
+        # easily lead to FloatingPointError: overflow encountered in double_scalars.
+        # To avoid this, better revert to either backwards or central differencing 
+        # the Peclet number is very large or very small.
+        self.Peclet_min = 1e-2
+        self.Peclet_max = 1/self.Peclet_min
+        # Need this number for Fiadeiro-Veronis differentiation.
+        self.delta_x = self.AragoniteSurface.grid._axes_coords[0][1] - \
+                       self.AragoniteSurface.grid._axes_coords[0][0]
+
+    def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
+                  PorSurface):
+        # Return initial state and register forward and backward difference
+        # operators. 
+        AragoniteSurface.label = "ARA"
+        CalciteSurface.label = "CAL"
+        CaSurface.label = "Ca"
+        CO3Surface.label = "CO3"
+        PorSurface.label = "Po"
+
+        return FieldCollection([AragoniteSurface, CalciteSurface, CaSurface, 
+                                CO3Surface, PorSurface])
+
+    @staticmethod
+    @njit
+    def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
+        # Assuming the arrays are 1D.
+        sigma = np.empty(Peclet.size)
+        for i in range(sigma.size):
+            if np.abs(Peclet[i]) < Peclet_min:
+                sigma[i] = 0
+            elif np.abs(Peclet[i]) > Peclet_max:
+                sigma[i] = np.sign(W_data[i])
+            else:
+                sigma[i] = np.cosh(Peclet[i])/np.sinh(Peclet[i]) - \
+                    1/Peclet[i]
+        return sigma
+
+    def evolution_rate(self, state, t=0):
+        CA, CC, cCa, cCO3, Phi = state   
+
+        two_factors = cCa * cCO3
+        two_factors_upp_lim = two_factors.to_scalar(lambda f: np.fmin(f,1))
+        two_factors_low_lim = two_factors.to_scalar(lambda f: np.fmax(f,1))
+
+        three_factors = two_factors * self.KRat
+        three_factors_upp_lim = three_factors.to_scalar(lambda f: np.fmin(f,1))
+        three_factors_low_lim = three_factors.to_scalar(lambda f: np.fmax(f,1))
+
+        coA = CA * (((1 - three_factors_upp_lim) ** self.m2) * \
+                    (self.not_too_deep * self.not_too_shallow) - self.nu1 * \
+                    (three_factors_low_lim - 1) ** self.m1)
+ 
+        coC = CC * (((two_factors_low_lim - 1) ** self.n1) - self.nu2 * \
+                    (1 - two_factors_upp_lim) ** self.n2)
+
+        F = 1 - np.exp(10 - 10 / Phi)
+
+        U = self.presum + self.rhorat * Phi ** 3 * F / (1 - Phi)
+
+        # Choose either forward or backward differencing for CA and CC
+        # depending on the sign of U
+
+        CA_grad_back = CA._apply_operator("grad_back", self.bc_CA)
+        CA_grad_forw = CA._apply_operator("grad_forw", self.bc_CA)
+        CA_grad = ScalarField(state.grid, np.where(U.data>0, CA_grad_back.data, \
+            CA_grad_forw.data))
+
+        CC_grad_back = CC._apply_operator("grad_back", self.bc_CC)
+        CC_grad_forw = CC._apply_operator("grad_forw", self.bc_CC)
+        CC_grad = ScalarField(state.grid, np.where(U.data>0, CC_grad_back.data, \
+            CC_grad_forw.data))
+
+        W = self.presum - self.rhorat * Phi ** 2 * F
         
-    ## Define System of PDEs
-    def PDEDef(x = None,__ = None,u = None,dudx = None): 
-        ##System of PDEs of LHeureux, described in eqs. 40 to 43
-        #abbreciations for readability
-        CA = u(1)
-        CC = u(2)
-        cCa = u(3)
-        cCO3 = u(4)
-        Phi = u(5)
-        #formulas for compact representation
-    #dPhi=(auxcon*((Phi^3)/(1-Phi))*(1-exp(10-10/Phi))); # eq. 25 + 17 in comb with eq. 44
-        dPhislash = (auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
-                    (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))
-        #OmegaPA=max(0,cCa*cCO3*KRat-1)^m1; #eq. 45
-    #OmegaDA=(max(0,1-cCa*cCO3*KRat)^m2)*(x*Xstar <= DeepLimit && x*Xstar >= ShallowLimit); #eq. 45
-    #OmegaPC=max(0,cCa*cCO3-1)^n1; #eq. 45
-    #OmegaDC=max(0,1-cCa*cCO3)^n2; #eq. 45
-        coA = CA * (((np.amax(0,1 - cCa * cCO3 * KRat) ** m2) * (x * Xstar <= DeepLimit 
-              and x * Xstar >= ShallowLimit)) - nu1 * (np.amax(0,cCa * cCO3 * KRat - 1) ** m1))
-        coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** n1) - nu2 * (np.amax(0,1 - cCa * cCO3) ** n2))
-        U = (presum + rhorat * Phi ** 3 * (1 - np.exp(10 - 10 / Phi)) / (1 - Phi))
-        
-        W = (presum - rhorat * Phi ** 2 * (1 - np.exp(10 - 10 / Phi)))
-        
-        Wslash = - rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
-        #Describe eqs. 40 to 43
-        c = np.array([[1],[1],[Phi],[Phi],[1]])
-        
-        f = np.array([[0],[0],[Phi * dCa * dudx(3)],[Phi * dCO3 * dudx(4)],
-                     [(auxcon * ((Phi ** 3) / (1 - Phi)) * (1 - np.exp(10 - 10 / Phi))) * dudx(5)]])
-        
-        s = np.array([[(- U * dudx(1) - Da * ((1 - CA) * coA + lambda_ * CA * coC))],[(- U * dudx(2) + Da * 
-                       (lambda_ * (1 - CC) * coC + CC * coA))],[(- Phi * W * dudx(3) + Da * (1 - Phi) * 
-                       (delta - cCa) * (coA - lambda_ * coC))],[(- Phi * W * dudx(4) + Da * (1 - Phi) * 
-                       (delta - cCO3) * (coA - lambda_ * coC))],[(Da * (1 - Phi) * (coA - lambda_ * coC) 
-                        - dudx(5) * (W + Wslash * Phi + dudx(5) * dPhislash))]])
-        return c,f,s
-    
-    ## Solve PDE
-    sol = pdepe(0,PDEDef,InitialConditions,BoundaryConditions,xmesh,tspan,options)
-    # return c,f,s
-    
-    return sol
+        dCA_dt = - U * CA_grad - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
+
+        dCC_dt = - U * CC_grad + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
+
+        # Implementing equation 6 from l'Heureux.
+        denominator = 1 - 2 * ScalarField(state.grid, np.log(Phi.data))
+
+        # Fiadeiro-Veronis scheme for equations 42 and 43
+        # from l'Heureux. 
+        common_Peclet  = W.data * self.delta_x * denominator.data/ 2. 
+        Peclet_cCa =  common_Peclet / self.dCa       
+        sigma_cCa_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCa, W.data, \
+                        self.Peclet_min, self.Peclet_max)
+        sigma_cCa = ScalarField(state.grid, sigma_cCa_data)
+
+        Peclet_cCO3 = common_Peclet / self.dCO3      
+        sigma_cCO3_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCO3, W.data, \
+                        self.Peclet_min, self.Peclet_max)
+        sigma_cCO3 = ScalarField(state.grid, sigma_cCO3_data)
+
+        one_minus_Phi = 1 - Phi
+        dPhi = self.auxcon * F * (Phi ** 3) / one_minus_Phi
+
+        Peclet_Phi = common_Peclet / dPhi.data 
+        sigma_Phi_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_Phi, W.data, \
+                        self.Peclet_min, self.Peclet_max)
+        sigma_Phi = ScalarField(state.grid, sigma_Phi_data)
+
+        cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
+        cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)
+        cCa_grad = 0.5 * ((1-sigma_cCa) * cCa_grad_forw + (1+sigma_cCa) * cCa_grad_back)
+
+        cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
+        cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
+        cCO3_grad = 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw + (1+sigma_cCO3) * cCO3_grad_back)
+
+        Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
+        Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
+        Phi_grad = 0.5 * ((1-sigma_Phi) * Phi_grad_forw + (1+sigma_Phi) * Phi_grad_back)
+
+        Phi_denom = Phi/denominator
+        grad_Phi_denom = Phi_grad * (denominator + 2) / denominator ** 2
+
+        common_helper = coA - self.lambda_ * coC
+
+        dcCa_dt = (cCa_grad * grad_Phi_denom + Phi_denom * cCa.laplace(self.bc_cCa)) \
+                  * self.dCa /Phi -W * cCa_grad \
+                  + self.Da * one_minus_Phi * (self.delta - cCa) * common_helper / Phi
+
+        dcCO3_dt = (cCO3_grad * grad_Phi_denom + Phi_denom * cCO3.laplace(self.bc_cCO3)) \
+                   * self.dCO3/Phi -W * cCO3_grad \
+                   + self.Da * one_minus_Phi * (self.delta - cCO3) * common_helper / Phi
+
+        dW_dx = -self.rhorat * Phi_grad * (2 * Phi * F + 10 * (F - 1))
+
+        # This is closer to the original form of (43) from l' Heureux than
+        # the Matlab implementation.
+        dPhi_dt = - (Phi * dW_dx + W * Phi_grad) \
+                  + dPhi * Phi.laplace(self.bc_Phi) \
+                  + self.Da * one_minus_Phi * common_helper
+
+        return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt])
+
+    def _make_pde_rhs_numba(self, state):
+        """ the numba-accelerated evolution equation """
+        # make attributes locally available
+        KRat = self.KRat
+        m1 = self.m1
+        m2  = self.m2
+        n1 = self.n1
+        n2 = self.n2
+        nu1 = self.nu1
+        nu2 = self.nu2
+        not_too_deep = self.not_too_deep.data
+        not_too_shallow = self.not_too_shallow.data
+        presum = self.presum
+        rhorat= self.rhorat
+        lambda_ = self.lambda_
+        Da = self.Da
+        dCa = self.dCa
+        dCO3 = self.dCO3
+        delta = self.delta
+        auxcon = self.auxcon
+        # The following three numbers are also needed for Fiadeiro-Veronis.
+        Peclet_min = self.Peclet_min
+        Peclet_max = self.Peclet_max
+        delta_x = state.grid._axes_coords[0][1] - state.grid._axes_coords[0][0]
+        grad_back_CA = state.grid.make_operator("grad_back", bc = self.bc_CA)
+        grad_forw_CA = state.grid.make_operator("grad_forw", bc = self.bc_CA)
+        grad_back_CC = state.grid.make_operator("grad_back", bc = self.bc_CC)
+        grad_forw_CC = state.grid.make_operator("grad_forw", bc = self.bc_CC)
+        grad_back_cCa = state.grid.make_operator("grad_back", bc = self.bc_cCa)
+        grad_forw_cCa = state.grid.make_operator("grad_forw", bc = self.bc_cCa)
+        laplace_cCa = state.grid.make_operator("laplace", bc = self.bc_cCa)
+        grad_back_cCO3 = state.grid.make_operator("grad_back", bc = self.bc_cCO3)
+        grad_forw_cCO3 = state.grid.make_operator("grad_forw", bc = self.bc_cCO3)
+        laplace_cCO3 = state.grid.make_operator("laplace", bc = self.bc_cCO3)
+        grad_back_Phi = state.grid.make_operator("grad_back", bc = self.bc_Phi)
+        grad_forw_Phi = state.grid.make_operator("grad_forw", bc = self.bc_Phi)
+        laplace_Phi = state.grid.make_operator("laplace", bc = self.bc_Phi)
+
+        @njit(nogil = True, parallel = True)
+        def pde_rhs(state_data, t=0):
+            """ compiled helper function evaluating right hand side """
+            # Instead of the default central differenced gradient from py-pde
+            # construct forward and backward differenced gradients and apply
+            # either one of them, based on the sign of U.
+            CA = state_data[0]
+            CA_grad_back = grad_back_CA(CA)
+            CA_grad_forw = grad_forw_CA(CA)
+
+            CC = state_data[1]
+            CC_grad_back = grad_back_CC(CC)
+            CC_grad_forw = grad_forw_CC(CC)
+
+            cCa = state_data[2]
+            cCa_grad_back = grad_back_cCa(cCa)
+            cCa_grad_forw = grad_forw_cCa(cCa)
+            cCa_laplace = laplace_cCa(cCa)
+
+            cCO3 = state_data[3]
+            cCO3_grad_back = grad_back_cCO3(cCO3)
+            cCO3_grad_forw = grad_forw_cCO3(cCO3)
+            cCO3_laplace = laplace_cCO3(cCO3)
+
+            Phi = state_data[4]
+            Phi_grad_back = grad_back_Phi(Phi)
+            Phi_grad_forw = grad_forw_Phi(Phi)
+            Phi_laplace = laplace_Phi(Phi)
+
+            rate = np.empty_like(state_data)
+
+            # state_data.size should be the same as len(CA) or len(CC), check this.
+            # So the number of depths, really.
+            no_depths = state_data[0].size
+
+            denominator = np.empty(no_depths)
+            common_helper1 = np.empty(no_depths)
+            common_helper2 = np.empty(no_depths)
+            helper_cCa_grad = np.empty(no_depths)
+            helper_cCO3_grad = np.empty(no_depths)
+            F = np.empty(no_depths)
+            U = np.empty(no_depths)
+            W = np.empty(no_depths)
+            two_factors = np.empty(no_depths)
+            two_factors_upp_lim = np.empty(no_depths)
+            two_factors_low_lim = np.empty(no_depths)
+            three_factors = np.empty(no_depths)
+            three_factors_upp_lim = np.empty(no_depths)
+            three_factors_low_lim = np.empty(no_depths)
+            coA = np.empty(no_depths)
+            coC = np.empty(no_depths)
+            common_helper3 = np.empty(no_depths)
+            dPhi = np.empty(no_depths)
+            dW_dx = np.empty(no_depths)
+            one_minus_Phi = np.empty(no_depths)
+            CA_grad = np.empty(no_depths)
+            CC_grad = np.empty(no_depths)
+            cCa_grad = np.empty(no_depths)
+            cCO3_grad = np.empty(no_depths)
+            Phi_grad = np.empty(no_depths)            
+
+            for i in prange(no_depths):
+                F[i] = 1 - np.exp(10 - 10 / Phi[i])
+
+                U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
+
+                if U[i] > 0:
+                    CA_grad[i] = CA_grad_back[i]
+                    CC_grad[i] = CC_grad_back[i]
+                else:
+                    CA_grad[i] = CA_grad_forw[i]
+                    CC_grad[i] = CC_grad_forw[i]
+
+                W[i] = presum - rhorat * Phi[i] ** 2 * F[i]
+
+                # Implementing equation 6 from l'Heureux.
+                denominator[i] = 1 - 2 * np.log(Phi[i])
+
+                # Fiadeiro-Veronis scheme for equations 42 and 43
+                # from l'Heureux. 
+                Peclet_cCa = W[i] * delta_x * denominator[i]/ (2. * dCa )
+                if np.abs(Peclet_cCa) < Peclet_min:
+                    sigma_cCa = 0
+                elif np.abs(Peclet_cCa) > Peclet_max:
+                    sigma_cCa = np.sign(W[i])
+                else:
+                     sigma_cCa = np.cosh(Peclet_cCa)/np.sinh(Peclet_cCa) - \
+                        1/Peclet_cCa
+
+                Peclet_cCO3 = W[i] * delta_x * denominator[i]/ (2. * dCO3)
+                if np.abs(Peclet_cCO3) < Peclet_min:
+                    sigma_cCO3 = 0
+                elif np.abs(Peclet_cCO3) > Peclet_max:
+                    sigma_cCO3 = np.sign(W[i])
+                else:
+                    sigma_cCO3 = np.cosh(Peclet_cCO3)/np.sinh(Peclet_cCO3) - \
+                        1/Peclet_cCO3
+
+                one_minus_Phi[i] = 1 - Phi[i]                 
+                dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
+                Peclet_Phi = W[i] * delta_x * denominator[i] / (2. * dPhi[i])
+                if np.abs(Peclet_Phi) < Peclet_min:
+                    sigma_Phi = 0
+                elif np.abs(Peclet_Phi) > Peclet_max:
+                    sigma_Phi = np.sign(W[i])
+                else:
+                    sigma_Phi = np.cosh(Peclet_Phi)/np.sinh(Peclet_Phi) - \
+                        1/Peclet_Phi
+
+                cCa_grad[i] = 0.5 * ((1-sigma_cCa) * cCa_grad_forw[i] + \
+                              (1+sigma_cCa) * cCa_grad_back[i])
+                cCO3_grad[i] = 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw[i] + \
+                              (1+sigma_cCO3) * cCO3_grad_back[i])
+                Phi_grad[i] = 0.5 * ((1-sigma_Phi) * Phi_grad_forw [i]+ \
+                              (1+sigma_Phi) * Phi_grad_back[i])
+
+                common_helper1[i] = Phi[i]/denominator[i]
+                common_helper2[i] = Phi_grad[i] * (2 + denominator[i]) \
+                                    / denominator[i] ** 2
+                helper_cCa_grad[i] = dCa * (common_helper2[i] * cCa_grad[i] \
+                                     + common_helper1[i] * cCa_laplace[i])
+                helper_cCO3_grad[i] = dCO3 * (common_helper2[i] * cCO3_grad[i] \
+                                     + common_helper1[i] * cCO3_laplace[i])            
+
+                two_factors[i] = cCa[i] * cCO3[i]
+                two_factors_upp_lim[i] = min(two_factors[i],1)
+                two_factors_low_lim[i] = max(two_factors[i],1)
+                three_factors[i] = two_factors[i] * KRat
+                three_factors_upp_lim[i] = min(three_factors[i],1)
+                three_factors_low_lim[i] = max(three_factors[i],1)
+
+                coA[i] = CA[i] * (((1 - three_factors_upp_lim[i]) ** m2) * \
+                    (not_too_deep[i] * not_too_shallow[i]) - nu1 * \
+                    (three_factors_low_lim[i] - 1) ** m1)
+
+                coC[i] = CC[i] * (((two_factors_low_lim[i] - 1) ** n1) - nu2 * \
+                    (1 - two_factors_upp_lim[i]) ** n2)         
+
+                common_helper3[i] = coA[i] - lambda_* coC[i]
+                   
+                dW_dx[i] = -rhorat * Phi_grad[i] * (2 * Phi[i] * F[i] + 10 * (F[i] - 1))    
+       
+                # This is dCA_dt
+                rate[0][i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
+                             * coA[i] + lambda_ * CA[i] * coC[i])
+
+                # This is dCC_dt
+                rate[1][i] = - U[i] * CC_grad[i] + Da * (lambda_ * \
+                             (1 - CC[i]) * coC[i] + CC[i] * coA[i])              
+
+                # This is dcCa_dt
+                rate[2][i] =  helper_cCa_grad[i]/Phi[i] - W[i] * \
+                              cCa_grad[i] + Da * one_minus_Phi[i] * \
+                              (delta - cCa[i]) * common_helper3[i] \
+                              /Phi[i]                                 
+
+                # This is dcCO3_dt
+                rate[3][i] =  helper_cCO3_grad[i]/Phi[i] - W[i] * \
+                              cCO3_grad[i] + Da * one_minus_Phi[i] * \
+                              (delta - cCO3[i]) * common_helper3[i] \
+                              /Phi[i]                       
+
+                # This is dPhi_dt
+                rate[4][i] = - (dW_dx[i] * Phi[i] + W[i] * Phi_grad[i]) \
+                             + dPhi[i] * Phi_laplace[i] + Da * one_minus_Phi[i] \
+                             * common_helper3[i] 
+
+            return rate
+
+        return pde_rhs   
