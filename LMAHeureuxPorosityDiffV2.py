@@ -3,20 +3,6 @@ from pde import FieldCollection, PDEBase, ScalarField
 from numba import njit, prange
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
     
-@njit
-def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
-    # Assuming the arrays are 1D.
-    sigma = np.empty(Peclet.shape[0])
-    for i in range(sigma.shape[0]):
-        if Peclet[i] < Peclet_min:
-            sigma[i] = 0
-        elif Peclet[i] > Peclet_max:
-            sigma[i] = np.sign(W_data[i])
-        else:
-            sigma[i] = np.cosh(Peclet[i])/np.sinh(Peclet[i]) - \
-                1/Peclet[i]
-    return sigma
-
 class LMAHeureuxPorosityDiff(PDEBase):
     """SIR-model with diffusive mobility"""
 
@@ -105,6 +91,21 @@ class LMAHeureuxPorosityDiff(PDEBase):
         return FieldCollection([AragoniteSurface, CalciteSurface, CaSurface, 
                                 CO3Surface, PorSurface])
 
+    @staticmethod
+    @njit
+    def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
+        # Assuming the arrays are 1D.
+        sigma = np.empty(Peclet.shape[0])
+        for i in range(sigma.shape[0]):
+            if np.abs(Peclet[i]) < Peclet_min:
+                sigma[i] = 0
+            elif np.abs(Peclet[i]) > Peclet_max:
+                sigma[i] = np.sign(W_data[i])
+            else:
+                sigma[i] = np.cosh(Peclet[i])/np.sinh(Peclet[i]) - \
+                    1/Peclet[i]
+        return sigma
+
     def evolution_rate(self, state, t=0):
         CA, CC, cCa, cCO3, Phi = state   
 
@@ -152,18 +153,18 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # Fiadeiro-Veronis scheme for equations 42 and 43
         # from l'Heureux. 
         Peclet_cCa = W.data * self.delta_x * denominator.data/ (2. * self.dCa )       
-        sigma_cCa = calculate_sigma(Peclet_cCa, W.data, \
+        sigma_cCa = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCa, W.data, \
                         self.Peclet_min, self.Peclet_max)
 
         Peclet_cCO3 = W.data * self.delta_x * denominator.data/ (2. * self.dCO3)       
-        sigma_cCO3 = calculate_sigma(Peclet_cCO3, W.data, \
+        sigma_cCO3 = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCO3, W.data, \
                         self.Peclet_min, self.Peclet_max)
 
         one_minus_Phi = 1 - Phi
         dPhi = self.auxcon * F * (Phi ** 3) / one_minus_Phi
 
         Peclet_Phi = W.data * self.delta_x * denominator.data/ (2. * dPhi.data)       
-        sigma_Phi = calculate_sigma(Peclet_Phi, W.data, \
+        sigma_Phi = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_Phi, W.data, \
                         self.Peclet_min, self.Peclet_max)
 
         cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)

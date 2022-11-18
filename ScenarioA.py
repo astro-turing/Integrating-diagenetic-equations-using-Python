@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
 from pde import CartesianGrid, ScalarField, FileStorage, plot_kymographs
-from pde import Controller, PlotTracker, PrintTracker, RealtimeIntervals
+from pde import Controller, PlotTracker
 from pde import ScipySolver, ExplicitSolver
 from pde.grids.operators.cartesian import _make_derivative
 import time
@@ -59,7 +59,7 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-depths = CartesianGrid([[0, 502/Xstar]], [400], periodic=False)
+depths = CartesianGrid([[0, 502/Xstar]], [200], periodic=False)
 # We will be needing forward and backward differencing for
 # Fiadeiro-Veronis differentiation.
 CartesianGrid.register_operator("grad_back", \
