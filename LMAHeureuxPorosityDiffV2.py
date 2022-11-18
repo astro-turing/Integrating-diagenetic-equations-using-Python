@@ -95,8 +95,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
     @njit
     def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
         # Assuming the arrays are 1D.
-        sigma = np.empty(Peclet.shape[0])
-        for i in range(sigma.shape[0]):
+        sigma = np.empty(Peclet.size)
+        for i in range(sigma.size):
             if np.abs(Peclet[i]) < Peclet_min:
                 sigma[i] = 0
             elif np.abs(Peclet[i]) > Peclet_max:
@@ -152,35 +152,36 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         # Fiadeiro-Veronis scheme for equations 42 and 43
         # from l'Heureux. 
-        Peclet_cCa = W.data * self.delta_x * denominator.data/ (2. * self.dCa )       
-        sigma_cCa = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCa, W.data, \
+        common_Peclet  = W.data * self.delta_x * denominator.data/ 2. 
+        Peclet_cCa =  common_Peclet / self.dCa       
+        sigma_cCa_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCa, W.data, \
                         self.Peclet_min, self.Peclet_max)
+        sigma_cCa = ScalarField(state.grid, sigma_cCa_data)
 
-        Peclet_cCO3 = W.data * self.delta_x * denominator.data/ (2. * self.dCO3)       
-        sigma_cCO3 = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCO3, W.data, \
+        Peclet_cCO3 = common_Peclet / self.dCO3      
+        sigma_cCO3_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCO3, W.data, \
                         self.Peclet_min, self.Peclet_max)
+        sigma_cCO3 = ScalarField(state.grid, sigma_cCO3_data)
 
         one_minus_Phi = 1 - Phi
         dPhi = self.auxcon * F * (Phi ** 3) / one_minus_Phi
 
-        Peclet_Phi = W.data * self.delta_x * denominator.data/ (2. * dPhi.data)       
-        sigma_Phi = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_Phi, W.data, \
+        Peclet_Phi = common_Peclet / dPhi.data 
+        sigma_Phi_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_Phi, W.data, \
                         self.Peclet_min, self.Peclet_max)
+        sigma_Phi = ScalarField(state.grid, sigma_Phi_data)
 
         cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
         cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)
-        cCa_grad = ScalarField(state.grid, 0.5 * ((1-sigma_cCa) * cCa_grad_forw + \
-                          (1+sigma_cCa) * cCa_grad_back))
+        cCa_grad = 0.5 * ((1-sigma_cCa) * cCa_grad_forw + (1+sigma_cCa) * cCa_grad_back)
 
         cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
         cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
-        cCO3_grad = ScalarField(state.grid, 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw + \
-                          (1+sigma_cCO3) * cCO3_grad_back))
+        cCO3_grad = 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw + (1+sigma_cCO3) * cCO3_grad_back)
 
         Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
         Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
-        Phi_grad = ScalarField(state.grid, 0.5 * ((1-sigma_Phi) * Phi_grad_forw + \
-                          (1+sigma_Phi) * Phi_grad_back))
+        Phi_grad = 0.5 * ((1-sigma_Phi) * Phi_grad_forw + (1+sigma_Phi) * Phi_grad_back)
 
         Phi_denom = Phi/denominator
         grad_Phi_denom = Phi_grad * (denominator + 2) / denominator ** 2
