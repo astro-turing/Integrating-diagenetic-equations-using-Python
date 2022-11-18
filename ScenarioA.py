@@ -105,7 +105,7 @@ storage = FileStorage(stored_results)
 
 sol, info = eq.solve(state, t_range=end_time, dt=time_step, method="explicit", \
                scheme = "rk", tracker=["progress", storage.tracker(0.01)], \
-               backend = "numpy", ret_info = True, adaptive = True)
+               backend = "numba", ret_info = True, adaptive = True)
 
 print("Meta-information about the solution : {}".format(info))        
 
