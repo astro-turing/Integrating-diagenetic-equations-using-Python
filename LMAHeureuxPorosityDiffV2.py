@@ -1,7 +1,7 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
 from numba import njit, prange
-np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
+np.seterr(divide="raise", over="raise", under="raise", invalid="raise")
     
 class LMAHeureuxPorosityDiff(PDEBase):
     """SIR-model with diffusive mobility"""
