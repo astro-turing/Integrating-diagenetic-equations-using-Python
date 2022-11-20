@@ -125,8 +125,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
                     (1 - two_factors_upp_lim) ** self.n2)
 
         F = 1 - np.exp(10 - 10 / Phi)
-
-        U = self.presum + self.rhorat * Phi ** 3 * F / (1 - Phi)
+        one_minus_Phi = 1 - Phi
+        U = self.presum + self.rhorat * Phi ** 3 * F /one_minus_Phi
 
         # Choose either forward or backward differencing for CA and CC
         # depending on the sign of U
@@ -143,45 +143,49 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         W = self.presum - self.rhorat * Phi ** 2 * F
         
-        dCA_dt = - U * CA_grad - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
+        dCA_dt = - U * CA_grad - self.Da * ((1 - CA) \
+                 * coA + self.lambda_ * CA * coC)
 
-        dCC_dt = - U * CC_grad + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
+        dCC_dt = - U * CC_grad + self.Da * (self.lambda_ \
+                 * (1 - CC) * coC + CC * coA)
 
         # Implementing equation 6 from l'Heureux.
-        denominator = 1 - 2 * ScalarField(state.grid, np.log(Phi.data))
+        denominator = 1 - 2 * np.log(Phi)
 
         # Fiadeiro-Veronis scheme for equations 42 and 43
         # from l'Heureux. 
-        common_Peclet  = W.data * self.delta_x * denominator.data/ 2. 
+        common_Peclet  = W * self.delta_x * denominator/ 2. 
         Peclet_cCa =  common_Peclet / self.dCa       
-        sigma_cCa_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCa, W.data, \
-                        self.Peclet_min, self.Peclet_max)
+        sigma_cCa_data = LMAHeureuxPorosityDiff.calculate_sigma(\
+            Peclet_cCa.data, W.data, self.Peclet_min, self.Peclet_max)
         sigma_cCa = ScalarField(state.grid, sigma_cCa_data)
 
         Peclet_cCO3 = common_Peclet / self.dCO3      
-        sigma_cCO3_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_cCO3, W.data, \
-                        self.Peclet_min, self.Peclet_max)
+        sigma_cCO3_data = LMAHeureuxPorosityDiff.calculate_sigma(\
+            Peclet_cCO3.data, W.data, self.Peclet_min, self.Peclet_max)
         sigma_cCO3 = ScalarField(state.grid, sigma_cCO3_data)
 
-        one_minus_Phi = 1 - Phi
         dPhi = self.auxcon * F * (Phi ** 3) / one_minus_Phi
 
-        Peclet_Phi = common_Peclet / dPhi.data 
-        sigma_Phi_data = LMAHeureuxPorosityDiff.calculate_sigma(Peclet_Phi, W.data, \
-                        self.Peclet_min, self.Peclet_max)
+        Peclet_Phi = common_Peclet / dPhi
+        sigma_Phi_data = LMAHeureuxPorosityDiff.calculate_sigma(\
+            Peclet_Phi.data, W.data, self.Peclet_min, self.Peclet_max)
         sigma_Phi = ScalarField(state.grid, sigma_Phi_data)
 
         cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
         cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)
-        cCa_grad = 0.5 * ((1-sigma_cCa) * cCa_grad_forw + (1+sigma_cCa) * cCa_grad_back)
+        cCa_grad = 0.5 * ((1-sigma_cCa) * cCa_grad_forw +\
+             (1+sigma_cCa) * cCa_grad_back)
 
         cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
         cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
-        cCO3_grad = 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw + (1+sigma_cCO3) * cCO3_grad_back)
+        cCO3_grad = 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw +\
+             (1+sigma_cCO3) * cCO3_grad_back)
 
         Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
         Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
-        Phi_grad = 0.5 * ((1-sigma_Phi) * Phi_grad_forw + (1+sigma_Phi) * Phi_grad_back)
+        Phi_grad = 0.5 * ((1-sigma_Phi) * Phi_grad_forw +\
+             (1+sigma_Phi) * Phi_grad_back)
 
         Phi_denom = Phi/denominator
         grad_Phi_denom = Phi_grad * (denominator + 2) / denominator ** 2

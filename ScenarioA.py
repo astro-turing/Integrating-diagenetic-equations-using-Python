@@ -59,12 +59,14 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-depths = CartesianGrid([[0, 502/Xstar]], [200], periodic=False)
+max_depth = 500
+number_of_depths = 200
+depths = CartesianGrid([[0, max_depth/Xstar]], [number_of_depths], periodic=False)
 # We will be needing forward and backward differencing for
 # Fiadeiro-Veronis differentiation.
-CartesianGrid.register_operator("grad_back", \
+depths.register_operator("grad_back", \
     lambda grid: _make_derivative(grid, method="backward"))
-CartesianGrid.register_operator("grad_forw", \
+depths.register_operator("grad_forw", \
     lambda grid: _make_derivative(grid, method="forward"))
 
 AragoniteSurface = ScalarField(depths, CAIni)
@@ -105,7 +107,7 @@ storage = FileStorage(stored_results)
 
 sol, info = eq.solve(state, t_range=end_time, dt=time_step, method="explicit", \
                scheme = "rk", tracker=["progress", storage.tracker(0.01)], \
-               backend = "numba", ret_info = True, adaptive = True)
+               backend = "numpy", ret_info = True, adaptive = True)
 
 print("Meta-information about the solution : {}".format(info))        
 
