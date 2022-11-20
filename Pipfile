@@ -14,6 +14,7 @@ pytest = "*"
 scipy = "*"
 py-pde = "*"
 tqdm = "*"
+h5py = "*"
 
 [dev-packages]
 
