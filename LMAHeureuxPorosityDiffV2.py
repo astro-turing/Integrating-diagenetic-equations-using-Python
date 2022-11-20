@@ -248,7 +248,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         grad_forw_Phi = state.grid.make_operator("grad_forw", bc = self.bc_Phi)
         laplace_Phi = state.grid.make_operator("laplace", bc = self.bc_Phi)
 
-        @njit(nogil = True, parallel = True)
+        @njit
         def pde_rhs(state_data, t=0):
             """ compiled helper function evaluating right hand side """
             # Instead of the default central differenced gradient from py-pde
@@ -309,7 +309,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
             cCO3_grad = np.empty(no_depths)
             Phi_grad = np.empty(no_depths)            
 
-            for i in prange(no_depths):
+            for i in range(no_depths):
                 F[i] = 1 - np.exp(10 - 10 / Phi[i])
 
                 U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
