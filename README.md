@@ -22,7 +22,7 @@ git clone https://github.com/astro-turing/Integrating-diagenetic-equations-using
 Next,
 ```
 cd Integrating-diagenetic-equations-using-Python
-pipenv shell
+pipenv install
 ```
 
 For the latter command you need `pipenv` which you can install
@@ -31,15 +31,21 @@ using either
 or
 `conda install -c conda-forge pipenv`.
 
-After `pipenv shell` you should be able to execute
+After `pipenv install` you should be able to execute
 
 ```
+pipenv run python ScenarioA.py
+```
+or
+
+```
+pipenv shell
 python ScenarioA.py
 ```
+Results in the form of an .npz file will be stored in a subdirectory of a `Results` directory, which will be next to the folder containing the git clone.
 
-After ten minutes you should see plots similar to figure 3e from l'Heureux (2018).
+After two minutes you should see plots similar to figure 3e from l'Heureux (2018).
 
 To be done:
 1) Read constants from a config file
-2) Fix Numpy backend, now only the Numba backend yields correct results.
-3) Make plots as nice as those from Use_solve_ivp_without_py-pde_wrapper branch.
+2) Make plots as nice as those from `Use_solve_ivp_without_py-pde_wrapper` branch
