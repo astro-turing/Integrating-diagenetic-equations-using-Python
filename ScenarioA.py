@@ -102,7 +102,7 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
 # simulate the pde
 tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
 # Store your results somewhere in a subdirectory of a parent directory.
-store_folder = "../Results/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
+store_folder = "../Results/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S" + "/")
 os.makedirs(store_folder)
 stored_results = store_folder + "LMAHeureuxPorosityDiff.npz"
 storage = FileStorage(stored_results)
@@ -110,7 +110,7 @@ storage = FileStorage(stored_results)
 sol, info = eq.solve(state, t_range=end_time, dt=time_step, method="explicit", \
                scheme = "rk", tracker=["progress", storage.tracker(0.01)], \
                backend = "numba", ret_info = True, adaptive = True)
-
+print()
 print("Meta-information about the solution : {}".format(info))        
 
 sol.plot()
