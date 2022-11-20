@@ -10,6 +10,7 @@ from pde import Controller, PlotTracker
 from pde import ScipySolver, ExplicitSolver
 from pde.grids.operators.cartesian import _make_derivative
 import time
+import os
 
 Scenario = 'A'
 
@@ -59,12 +60,14 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-depths = CartesianGrid([[0, 502/Xstar]], [200], periodic=False)
+max_depth = 500
+number_of_depths = 200
+depths = CartesianGrid([[0, max_depth/Xstar]], [number_of_depths], periodic=False)
 # We will be needing forward and backward differencing for
 # Fiadeiro-Veronis differentiation.
-CartesianGrid.register_operator("grad_back", \
+depths.register_operator("grad_back", \
     lambda grid: _make_derivative(grid, method="backward"))
-CartesianGrid.register_operator("grad_forw", \
+depths.register_operator("grad_forw", \
     lambda grid: _make_derivative(grid, method="forward"))
 
 AragoniteSurface = ScalarField(depths, CAIni)
@@ -88,9 +91,8 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
                             not_too_shallow, not_too_deep)             
 
-# Let us try to years 710 years, like Niklas.
 end_time = Tstar/Tstar
-number_of_steps = 1e4
+number_of_steps = 1e6
 time_step = end_time/number_of_steps
 # tspan = np.arange(0,end_time+time_step, time_step)
 
@@ -99,8 +101,10 @@ state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface,
 
 # simulate the pde
 tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
-stored_results = "../Results/LMAHeureuxPorosityDiff_" + datetime.now().\
-                      strftime("%d_%m_%Y_%H_%M_%S") + ".npz"
+# Store your results somewhere in a subdirectory of a parent directory.
+store_folder = "../Results/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
+os.makedirs(store_folder)
+stored_results = store_folder + "LMAHeureuxPorosityDiff.npz"
 storage = FileStorage(stored_results)
 
 sol, info = eq.solve(state, t_range=end_time, dt=time_step, method="explicit", \
