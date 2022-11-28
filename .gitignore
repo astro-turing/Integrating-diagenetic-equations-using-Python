@@ -1,2 +1,5 @@
-*.pyc/__pycache__
-*.npz/Results
+__pycache__
+*.npz
+*.npy
+.*.swp
+
