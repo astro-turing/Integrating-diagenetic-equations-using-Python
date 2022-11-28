@@ -11,6 +11,7 @@ Implicit (in time) solvers with use of Jacobians are available in the `Use_solve
 
 Wide use is made of the [py-pde](https://py-pde.readthedocs.io/en/latest/) package.
 
+## Installing and using
 To run this code, you need `git` and `conda` or `pip` to install .
 ```
 git clone git@github.com:astro-turing/Integrating-diagenetic-equations-using-Python.git
@@ -46,6 +47,19 @@ Results in the form of an .npz file will be stored in a subdirectory of a `Resul
 
 After two minutes you should see plots similar to figure 3e from l'Heureux (2018).
 
+### Alternative: poetry
+If you prefer [`poetry`](https://python-poetry.org/) over `pipenv`, you may install all the dependencies and activate the environment using:
+
+```
+poetry install
+poetry shell
+```
+
+Then proceed with running as explained above.
+
+## Future development
+
 To be done:
-1) Read constants from a config file
-2) Make plots as nice as those from `Use_solve_ivp_without_py-pde_wrapper` branch
+- [ ] Read constants from a config file
+- [ ] Make plots as nice as those from `Use_solve_ivp_without_py-pde_wrapper` branch
+
