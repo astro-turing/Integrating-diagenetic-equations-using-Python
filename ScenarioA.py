@@ -10,6 +10,7 @@ from pde import CartesianGrid, ScalarField
 from scipy.integrate import solve_ivp
 import time
 from tqdm import tqdm
+import sys
 
 Scenario = 'A'
 CA0 = 0.6
@@ -22,8 +23,8 @@ cCa0 = 0.326e-3/np.sqrt(KC)
 cCaIni = cCa0
 cCO30 = 0.326e-3/np.sqrt(KC)
 cCO3Ini = cCO30
-Phi0 = 0.6
-PhiIni = 0.5
+Phi0 = 0.65
+PhiIni = 0.65
 
 ShallowLimit = 50
 
@@ -91,11 +92,12 @@ eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30
 depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
 
 # Let us try to reach 710 years, like Niklas.
-end_time = Tstar/Tstar
+timeMult=10
+end_time = timeMult * Tstar/Tstar
 # number_of_steps = 1e7
 # time_step = end_time/number_of_steps
 # Number of times to evaluate.
-no_t_eval = 100
+no_t_eval = timeMult * 100000
 # t_eval = np.logspace(np.log10(end_time/no_t_eval), np.log10(end_time), no_t_eval)
 t_eval = np.linspace(0, end_time, num = no_t_eval)
 
@@ -117,50 +119,53 @@ with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
                 args=[pbar, [0, 1/number_of_progress_updates]])
 end_computing = time.time()
 
-print()
-print("Number of rhs evaluations = {0}".format(sol.nfev))
-print()
-print("Number of Jacobian evaluations = {0}".format(sol.njev))
-print()
-print("Number of LU decompositions = {0}".format(sol.nlu))
-print()
-print("Status = {0}".format(sol.status))
-print()
-print("Success = {0}".format(sol.success))
-print()
-f = sol.t_events[0]
-print(("Times, in years, at which any field at any depth crossed zero: "\
+with open(../Results/Meta_information_" + datetime.now().\
+                      strftime("%d_%m_%Y_%H_%M_%S") + ".txt", 'a') as meta:
+    sys.stdout = meta #Move everything that used to be displayed to a file in case the session crashes
+    print()
+    print("Number of rhs evaluations = {0}".format(sol.nfev))
+    print()
+    print("Number of Jacobian evaluations = {0}".format(sol.njev))
+    print()
+    print("Number of LU decompositions = {0}".format(sol.nlu))
+    print()
+    print("Status = {0}".format(sol.status))
+    print()
+    print("Success = {0}".format(sol.success))
+    print()
+    f = sol.t_events[0]
+    print(("Times, in years, at which any field at any depth crossed zero: "\
       +', '.join(['%.2f']*len(f))+"") % tuple([Tstar * time for time in f]))
-print()
-g = sol.t_events[1]
-print(("Times, in years, at which CA at any depth crossed zero: "\
+    print()
+    g = sol.t_events[1]
+    print(("Times, in years, at which CA at any depth crossed zero: "\
       +', '.join(['%.2f']*len(g))+"") % tuple([Tstar * time for time in g]))
-print()
-h = sol.t_events[2]
-print(("Times, in years, at which CC at any depth crossed zero: "\
+    print()
+    h = sol.t_events[2]
+    print(("Times, in years, at which CC at any depth crossed zero: "\
       +', '.join(['%.2f']*len(h))+"") % tuple([Tstar * time for time in h]))
-print()
-k = sol.t_events[3]
-print(("Times, in years, at which CA + CC at any depth crossed one: "\
+    print()
+    k = sol.t_events[3]
+    print(("Times, in years, at which CA + CC at any depth crossed one: "\
       +', '.join(['%.2f']*len(k))+"") % tuple([Tstar * time for time in k]))
-print()
-l = sol.t_events[4]
-print(("Times, in years, at which the porosity at any depth crossed one: "\
+    print()
+    l = sol.t_events[4]
+    print(("Times, in years, at which the porosity at any depth crossed one: "\
       +', '.join(['%.2f']*len(l))+"") % tuple([Tstar * time for time in l]))
-print()
-m = sol.t_events[5]
-print(("Times, in years, at which U at any depth crossed zero: "\
+    print()
+    m = sol.t_events[5]
+    print(("Times, in years, at which U at any depth crossed zero: "\
       +', '.join(['%.2f']*len(m))+"") % tuple([Tstar * time for time in m]))
-print()
-n = sol.t_events[6]
-print(("Times, in years, at which W at any depth crossed zero: "\
+    print()
+    n = sol.t_events[6]
+    print(("Times, in years, at which W at any depth crossed zero: "\
       +', '.join(['%.2f']*len(n))+"") % tuple([Tstar * time for time in n]))
-print()
+    print()
 
-print("Message from solve_ivp = {0}".format(sol.message))
-print()
-print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
-print()
+    print("Message from solve_ivp = {0}".format(sol.message))
+    print()
+    print("Time taken for solve_ivp is {0:.2f}s.".format(end_computing - start_computing))
+    print()
 
 if sol.status == 0:
     covered_time = Tstar * end_time
