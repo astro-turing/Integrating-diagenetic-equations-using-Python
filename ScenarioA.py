@@ -91,14 +91,10 @@ eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30
 
 depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
 
-# Let us try to reach 710 years, like Niklas.
 timeMult=10
 end_time = timeMult * Tstar/Tstar
-# number_of_steps = 1e7
-# time_step = end_time/number_of_steps
-# Number of times to evaluate.
-no_t_eval = timeMult * 100000
-# t_eval = np.logspace(np.log10(end_time/no_t_eval), np.log10(end_time), no_t_eval)
+# Number of times to evaluate, for storage.
+no_t_eval = 100
 t_eval = np.linspace(0, end_time, num = no_t_eval)
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
@@ -119,7 +115,7 @@ with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
                 args=[pbar, [0, 1/number_of_progress_updates]])
 end_computing = time.time()
 
-with open(../Results/Meta_information_" + datetime.now().\
+with open("../Results/Meta_information_" + datetime.now().\
                       strftime("%d_%m_%Y_%H_%M_%S") + ".txt", 'a') as meta:
     sys.stdout = meta #Move everything that used to be displayed to a file in case the session crashes
     print()
@@ -187,36 +183,3 @@ plt.legend(loc='upper right')
 plt.tight_layout()
 plt.savefig("../Results/Final_compositions_and_concentrations_" + datetime.now().\
                       strftime("%d_%m_%Y_%H_%M_%S") + ".png")
-# plt.plot(depths,sol(timeslice,:,5))
-## Componentwise Plots
-# timeslice = 5
-# tiledlayout(5,1)
-# nexttile
-# plt.plot(depths,sol(timeslice,:,1))
-# plt.xlabel('Depth (cm)')
-# plt.title('Aragonite')
-# plt.ylim(np.array([0,1]))
-# plt.xlim(np.array([0,np.amax(depths)]))
-# nexttile
-# plt.plot(depths,sol(timeslice,:,2))
-# plt.xlabel('Depth (cm)')
-# plt.title('Calcite')
-# plt.ylim(np.array([0,1]))
-# plt.xlim(np.array([0,np.amax(depths)]))
-# nexttile
-# plt.plot(depths,sol(timeslice,:,3))
-# plt.xlabel('Depth (cm)')
-# plt.title('Ca')
-# plt.xlim(np.array([0,np.amax(depths)]))
-# nexttile
-# plt.plot(depths,sol(timeslice,:,4))
-# plt.xlabel('Depth (cm)')
-# plt.title('CO3')
-# plt.xlim(np.array([0,np.amax(depths)]))
-# nexttile
-# plt.plot(depths,sol(timeslice,:,5))
-# plt.xlabel('Depth (cm)')
-# plt.title('Porosity')
-# plt.ylim(np.array([0,1]))
-# plt.xlim(np.array([0,np.amax(depths)]))
-# sgtitle(join(np.array([num2str(times(timeslice)),' Years'])))
