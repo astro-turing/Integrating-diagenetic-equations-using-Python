@@ -110,7 +110,7 @@ with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
                 atol = 1e-3, rtol = 1e-3, t_eval= t_eval, \
                 events = [eq.zeros, eq.zeros_CA, eq.zeros_CC, \
                 eq.ones_CA_plus_CC, eq.ones_Phi, eq.zeros_U, eq.zeros_W],  \
-                method="RK45", dense_output= True,\
+                method="BDF", dense_output= True,\
                 first_step = None, jac = eq.jac, \
                 args=[pbar, [0, 1/number_of_progress_updates]])
 end_computing = time.time()

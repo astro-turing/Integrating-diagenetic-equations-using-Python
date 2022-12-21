@@ -1,6 +1,6 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField, FieldBase
-from numba import njit, prange
+from numba import njit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
 from scipy.sparse import csr_matrix, find   
 from Compute_jacobian import Jacobian
@@ -331,7 +331,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3_grad = np.empty(no_depths)
         Phi_grad = np.empty(no_depths)
 
-        for i in prange(no_depths):
+        for i in range(no_depths):
             F[i] = 1 - np.exp(10 - 10 / Phi[i])
 
             U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
