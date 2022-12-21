@@ -291,7 +291,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return rhs
 
-    @njit(nogil = True, fastmath = True)
+    @njit
     def pde_rhs(CA, CC, cCa, \
             cCO3, Phi, KRat, \
             m1, m2, n1, n2, nu1, nu2, \
