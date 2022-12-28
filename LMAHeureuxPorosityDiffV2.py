@@ -539,19 +539,19 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3 = y[self.cCO3_sl]
         Phi = y[self.Phi_sl]  
 
-        jacob_csr = csr_matrix(Jacobian(CA, CC, cCa, cCO3, Phi, \
-            self.KRat, self.m1, self.m2, \
-            self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
-            self.not_too_shallow, self.lambda_, \
-            self.Da, self.delta, \
-            no_depths = self.Depths.shape[0], no_fields = self.no_fields))
-
-        # jacob_csr = Jacobian(CA, CC, cCa, cCO3, Phi, \
+        # jacob_csr = csr_matrix(Jacobian(CA, CC, cCa, cCO3, Phi, \
         #     self.KRat, self.m1, self.m2, \
         #     self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
         #     self.not_too_shallow, self.lambda_, \
         #     self.Da, self.delta, \
-        #     no_depths = self.Depths.shape[0], no_fields = self.no_fields)
+        #     no_depths = self.Depths.shape[0], no_fields = self.no_fields))
+
+        jacob_csr = Jacobian(CA, CC, cCa, cCO3, Phi, \
+            self.KRat, self.m1, self.m2, \
+            self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
+            self.not_too_shallow, self.lambda_, \
+            self.Da, self.delta, \
+            no_depths = self.Depths.shape[0], no_fields = self.no_fields)
         # Check that we should have 5**2 sets of Jacobian values for 5 fields,
         # with each set comprised of no_depth numbers.
         """     no_sets_of_jacobian_values = len(all_jac_values_rows_and_cols)
