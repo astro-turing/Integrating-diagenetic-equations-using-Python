@@ -222,59 +222,34 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # Instead of the default central differenced gradient from py-pde
         # construct forward and backward differenced gradients and apply
         # either one of them, based on the sign of U.
-        CA_grad_back = CA.copy()
-        CA_grad_forw = CA.copy()
-        CA_grad_back.data[:] = 0
-        CA_grad_forw.data[:] = 0
-        CA.set_ghost_cells(self.bc_CA)
-        self.backward_diff(CA._data_full, out = CA_grad_back.data)
-        self.forward_diff(CA._data_full, out = CA_grad_forw.data)
+        CA_grad_back = CA._apply_operator("grad_back", self.bc_CA)
+        CA_grad_forw = CA._apply_operator("grad_forw", self.bc_CA)
 
         # Instead of the default central differenced gradient from py-pde
         # construct forward and backward differenced gradients and apply
         # either one of them, based on the sign of U.
-        CC_grad_back = CC.copy()
-        CC_grad_forw = CC.copy()
-        CC_grad_back.data[:] = 0
-        CC_grad_forw.data[:] = 0
-        CC.set_ghost_cells(self.bc_CC)
-        self.backward_diff(CC._data_full, out = CC_grad_back.data)
-        self.forward_diff(CC._data_full, out = CC_grad_forw.data)
+        CC_grad_back = CC._apply_operator("grad_back", self.bc_CC)
+        CC_grad_forw = CC._apply_operator("grad_forw", self.bc_CC)        
 
         # Instead of the default central differenced gradient from py-pde
         # construct forward and backward differenced gradients and give them
         # appropriate weights according to a Fiadeiro-Veronis scheme.
-        cCa_grad_back = cCa.copy()
-        cCa_grad_forw = cCa.copy()
-        cCa_grad_back.data[:] = 0
-        cCa_grad_forw.data[:] = 0
-        cCa.set_ghost_cells(self.bc_cCa)
-        self.backward_diff(cCa._data_full, out = cCa_grad_back.data)
-        self.forward_diff(cCa._data_full, out = cCa_grad_forw.data)
+        cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
+        cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)      
         cCa_laplace = cCa.laplace(self.bc_cCa)
 
         # Instead of the default central differenced gradient from py-pde
         # construct forward and backward differenced gradients and give them
         # appropriate weights according to a Fiadeiro-Veronis scheme.
-        cCO3_grad_back = cCO3.copy()
-        cCO3_grad_forw = cCO3.copy()
-        cCO3_grad_back.data[:] = 0
-        cCO3_grad_forw.data[:] = 0
-        cCO3.set_ghost_cells(self.bc_cCO3)
-        self.backward_diff(cCO3._data_full, out = cCO3_grad_back.data)
-        self.forward_diff(cCO3._data_full, out = cCO3_grad_forw.data)
+        cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
+        cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
         cCO3_laplace = cCO3.laplace(self.bc_cCO3)
 
         # Instead of the default central differenced gradient from py-pde
         # construct forward and backward differenced gradients and give them
         # appropriate weights according to a Fiadeiro-Veronis scheme.
-        Phi_grad_back = Phi.copy()
-        Phi_grad_forw = Phi.copy()
-        Phi_grad_back.data[:] = 0
-        Phi_grad_forw.data[:] = 0
-        Phi.set_ghost_cells(self.bc_Phi)
-        self.backward_diff(Phi._data_full, out = Phi_grad_back.data)
-        self.forward_diff(Phi._data_full, out = Phi_grad_forw.data)
+        Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
+        Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
         Phi_laplace = Phi.laplace(self.bc_Phi)
 
         rhs = LMAHeureuxPorosityDiff.pde_rhs(CA.data, CC.data, cCa.data, \
