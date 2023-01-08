@@ -174,6 +174,7 @@ else:
 plt.title("Situation after " + " {:.2f} ".format(covered_time) + " years")
 # Marker size
 ms = 3
+depths = ScalarField.from_expression(Depths, "x").data * Xstar
 plt.plot(depths, (sol.y)[slices_for_all_fields[0], -1], "v", ms = ms, label = "CA")
 plt.plot(depths, (sol.y)[slices_for_all_fields[1], -1], "^", ms = ms, label = "CC")
 plt.plot(depths, (sol.y)[slices_for_all_fields[2], -1], ">", ms = ms, label = "cCa")
