@@ -1,4 +1,3 @@
-# Last modified by Niklas Hohmann (n.hohmann@uw.edu.pl) Oct 2021
 ## Parameters for Scenario A
 #Taken from table 1 (p. 7)
 from tracemalloc import start

@@ -120,9 +120,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3 = ScalarField(self.Depths, y[self.slices_for_all_fields[3]])
         Phi = ScalarField(self.Depths, y[self.slices_for_all_fields[4]])
 
-        # dPhislash = (self.auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
-        #            (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))    
-
         two_factors = cCa * cCO3
         two_factors_upp_lim = two_factors.to_scalar(lambda f: np.fmin(f,1))
         two_factors_low_lim = two_factors.to_scalar(lambda f: np.fmax(f,1))
@@ -135,16 +132,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
                     (self.not_too_deep * self.not_too_shallow) - self.nu1 * \
                     (three_factors_low_lim - 1) ** self.m1)
  
-        # coA = CA * (((np.amax(0,1 - cCa * cCO3 * self.KRat) ** self.m2) * \
-        #      (Depths.data * Xstar <= self.DeepLimit and \
-        #      Depths.data * Xstar >= self.ShallowLimit)) - self.nu1 * \
-        #      (np.amax(0,cCa * cCO3 * self.KRat - 1) ** self.m1))
-
         coC = CC * (((two_factors_low_lim - 1) ** self.n1) - self.nu2 * \
                     (1 - two_factors_upp_lim) ** self.n2)
-
-        # coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * \
-        #      (np.amax(0,1 - cCa * cCO3) ** self.n2))
 
         F = 1 - np.exp(10 - 10 / Phi)
 
@@ -152,8 +141,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         
         W = self.presum - self.rhorat * Phi ** 2 * F
         
-        # Wslash = - self.rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
-
         dCA_dt = - U * CA.gradient(self.bc_CA)[0] - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
 
         dCC_dt = - U * CC.gradient(self.bc_CC)[0] + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
@@ -167,35 +154,21 @@ class LMAHeureuxPorosityDiff(PDEBase):
         common_helper = coA - self.lambda_ * coC
 
         dcCa_dx = cCa.gradient(self.bc_cCa)[0]
-        # dcCa_dt = ((Phi * self.dCa * dcCa_dx/denominator).gradient(self.bc_cCa))/Phi -W * dcCa_dx \
-        #          + self.Da * (1 - Phi) * (self.delta - cCa) * (coA - self.lambda_ * coC)/Phi
        
         dcCa_dt = (dcCa_dx * grad_Phi_denom + Phi_denom * cCa.laplace(self.bc_cCa)) \
                   * self.dCa /Phi -W * dcCa_dx \
                   + self.Da * (1 - Phi) * (self.delta - cCa) * common_helper / Phi
 
         dcCO3_dx = cCO3.gradient(self.bc_cCO3)[0]
-        # dcCO3_dt = (Phi * self.dCO3 * dcCO3_dx/denominator).gradient(self.bc_cCO3)/Phi \
-        #           -W * dcCO3_dx + self.Da * (1 - Phi) * (self.delta - cCO3) * \
-        #           (coA - self.lambda_ * coC)/Phi
 
         dcCO3_dt = (dcCO3_dx * grad_Phi_denom + Phi_denom * cCO3.laplace(self.bc_cCO3)) \
                    * self.dCO3/Phi -W * dcCO3_dx \
                    + self.Da * (1 - Phi) * (self.delta - cCO3) * common_helper / Phi
 
-
         dPhi = self.auxcon * F * (Phi ** 3) / (1 - Phi)
 
         dW_dx = -self.rhorat * dPhi_dx * (2 * Phi * F + 10 * (F - 1))
 
-        # dPhi_dt = ((self.auxcon * ((Phi ** 3) / (1 - Phi)) * \
-        #           (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient(self.bc_Phi) \
-        #          + self.Da * (1 - Phi) * (coA - self.lambda_ * coC) - dPhi_dx * \
-        #            (W + Wslash * Phi + dPhi_dx * dPhislash)
-
-
-        # This is closer to the original form of (43) from l' Heureux than
-        # the Matlab implementation.
         dPhi_dt = - (Phi * dW_dx + W * dPhi_dx) \
                   + dPhi * Phi.laplace(self.bc_Phi) \
                   + self.Da * (1 - Phi) * common_helper
