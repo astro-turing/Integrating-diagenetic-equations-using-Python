@@ -343,7 +343,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
             one_minus_Phi[i] = 1 - Phi[i]                 
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
-            Peclet_Phi = W[i] * delta_x * denominator[i] / (2. * dPhi[i])
+            Peclet_Phi = W[i] * delta_x / (2. * dPhi[i])
             if np.abs(Peclet_Phi) < Peclet_min:
                 sigma_Phi = 0
             elif np.abs(Peclet_Phi) > Peclet_max:
