@@ -154,13 +154,13 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         # Fiadeiro-Veronis scheme for equations 42 and 43
         # from l'Heureux. 
-        common_Peclet  = W * self.delta_x * denominator/ 2. 
-        Peclet_cCa =  common_Peclet / self.dCa       
+        common_Peclet  = W * self.delta_x / 2. 
+        Peclet_cCa =  common_Peclet * denominator/ self.dCa       
         sigma_cCa_data = LMAHeureuxPorosityDiff.calculate_sigma(\
             Peclet_cCa.data, W.data, self.Peclet_min, self.Peclet_max)
         sigma_cCa = ScalarField(state.grid, sigma_cCa_data)
 
-        Peclet_cCO3 = common_Peclet / self.dCO3      
+        Peclet_cCO3 = common_Peclet * denominator/ self.dCO3      
         sigma_cCO3_data = LMAHeureuxPorosityDiff.calculate_sigma(\
             Peclet_cCO3.data, W.data, self.Peclet_min, self.Peclet_max)
         sigma_cCO3 = ScalarField(state.grid, sigma_cCO3_data)
@@ -348,7 +348,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
                 one_minus_Phi[i] = 1 - Phi[i]                 
                 dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
-                Peclet_Phi = W[i] * delta_x * denominator[i] / (2. * dPhi[i])
+                Peclet_Phi = W[i] * delta_x / (2. * dPhi[i])
                 if np.abs(Peclet_Phi) < Peclet_min:
                     sigma_Phi = 0
                 elif np.abs(Peclet_Phi) > Peclet_max:
