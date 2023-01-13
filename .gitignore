@@ -1,4 +1,5 @@
-*.pyc/__pycache__
-*.nbc/__pycache__
-*.nbi/__pycache__
-*.npz/Results
+__pycache__
+*.npz
+*.npy
+.*.swp
+__pycache__/LMAHeureuxPorosityDiffV2.cpython-310.pyc

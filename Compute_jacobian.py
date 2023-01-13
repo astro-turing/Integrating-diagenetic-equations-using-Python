@@ -25,7 +25,7 @@ Phi. So we have 23 * 400 = 9200 non-zero elements out of 2000 * 2000 = 4e6
 elements. Truly a sparse matrix!"""
 
 import numpy as np
-from numba import prange, njit, vectorize
+from numba import njit, vectorize
 from numba import float32 as f32
 from numba import int32 as i32
 from numba.extending import overload
@@ -52,7 +52,7 @@ def np_heaviside(x1, x2):
 
     return heaviside_impl
 
-@njit(nogil= True, parallel = True, fastmath=True, cache = True)
+@njit
 def Jacobian(CA, CC, cCa, cCO3, Phi, KRat, m1, m2, \
             n1, n2, nu1, nu2, not_too_deep, \
             not_too_shallow, lambda_, Da, delta, no_depths, no_fields):
@@ -294,9 +294,9 @@ def Jacobian(CA, CC, cCa, cCO3, Phi, KRat, m1, m2, \
         col_indices = np.arange(no_depths)
         n = no_fields * no_depths 
         all_jac_values = np.zeros((n, n))
-        for i in prange(no_fields):
+        for i in range(no_fields):
             row = i * no_depths + row_indices
-            for j in prange(no_fields):
+            for j in range(no_fields):
                 col = j * no_depths + col_indices
                 # row_and_col = (row, col)
                 if i == 0 and j == 0:

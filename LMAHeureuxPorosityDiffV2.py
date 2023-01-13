@@ -1,6 +1,6 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField, FieldBase
-from numba import njit, prange
+from numba import njit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
 from scipy.sparse import csr_matrix, find   
 from Compute_jacobian import Jacobian
@@ -15,6 +15,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
                 DCa, DCO3, not_too_shallow, not_too_deep):  
         self.no_fields = 5
         self.Depths = Depths    
+        self.Depths.register_operator("grad_back", \
+            lambda grid: _make_derivative(grid, method="backward"))
+        self.Depths.register_operator("grad_forw", \
+            lambda grid: _make_derivative(grid, method="forward"))
         self.delta_x = self.Depths._axes_coords[0][1] - \
                        self.Depths._axes_coords[0][0]
         self.slices_for_all_fields = slices_for_all_fields
@@ -107,21 +111,38 @@ class LMAHeureuxPorosityDiff(PDEBase):
                                 CO3Surface, PorSurface])
 
     def evolution_rate(self, state: FieldBase, t: float = 0) -> FieldBase:
-        return super().evolution_rate(state, t)                            
+        return super().evolution_rate(state, t)        
+     
+    @staticmethod
+    @njit
+    def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
+        # Assuming the arrays are 1D.
+        sigma = np.empty(Peclet.size)
+        for i in range(sigma.size):
+            if np.abs(Peclet[i]) < Peclet_min:
+                sigma[i] = 0
+            elif np.abs(Peclet[i]) > Peclet_max:
+                sigma[i] = np.sign(W_data[i])
+            else:
+                sigma[i] = np.cosh(Peclet[i])/np.sinh(Peclet[i]) - \
+                    1/Peclet[i]
+        return sigma                       
 
     def fun(self, t, y, pbar, state):
-        """ solve_ivp demands that I add these two extra aguments, i.e.
-        pbar and state, as in jac, where I need them for 
-        tqdm progress reports.
-        However, for this rhs calculation, they are redundant. """    
+        """ For tqdm to monitor progress. """
+        """ From 
+        https://stackoverflow.com/questions/59047892/how-to-monitor-the-process-of-scipy-odeint """
+        last_t, dt = state
+        n = int((t - last_t)/dt)
+        pbar.update(n)
+        # this we need to take into account that n is a rounded number.
+        state[0] = last_t + dt * n
+
         CA = ScalarField(self.Depths, y[self.slices_for_all_fields[0]])
         CC = ScalarField(self.Depths, y[self.slices_for_all_fields[1]])
         cCa = ScalarField(self.Depths, y[self.slices_for_all_fields[2]])
         cCO3 = ScalarField(self.Depths, y[self.slices_for_all_fields[3]])
         Phi = ScalarField(self.Depths, y[self.slices_for_all_fields[4]])
-
-        # dPhislash = (self.auxcon * (Phi / ((1 - Phi) ** 2)) * (np.exp(10 - 10 / Phi) * 
-        #            (2 * Phi ** 2 + 7 * Phi - 10) + Phi * (3 - 2 * Phi)))    
 
         two_factors = cCa * cCO3
         two_factors_upp_lim = two_factors.to_scalar(lambda f: np.fmin(f,1))
@@ -135,69 +156,94 @@ class LMAHeureuxPorosityDiff(PDEBase):
                     (self.not_too_deep * self.not_too_shallow) - self.nu1 * \
                     (three_factors_low_lim - 1) ** self.m1)
  
-        # coA = CA * (((np.amax(0,1 - cCa * cCO3 * self.KRat) ** self.m2) * \
-        #      (Depths.data * Xstar <= self.DeepLimit and \
-        #      Depths.data * Xstar >= self.ShallowLimit)) - self.nu1 * \
-        #      (np.amax(0,cCa * cCO3 * self.KRat - 1) ** self.m1))
-
         coC = CC * (((two_factors_low_lim - 1) ** self.n1) - self.nu2 * \
                     (1 - two_factors_upp_lim) ** self.n2)
-
-        # coC = CC * ((np.amax(0,cCa * cCO3 - 1) ** self.n1) - self.nu2 * \
-        #      (np.amax(0,1 - cCa * cCO3) ** self.n2))
 
         F = 1 - np.exp(10 - 10 / Phi)
 
         U = self.presum + self.rhorat * Phi ** 3 * F / (1 - Phi)
         
+        # Instead of the default central differenced gradient from py-pde
+        # construct forward and backward differenced gradients and apply
+        # either one of them, based on the sign of U.
+        CA_grad_back = CA._apply_operator("grad_back", self.bc_CA)
+        CA_grad_forw = CA._apply_operator("grad_forw", self.bc_CA)
+        CA_grad = ScalarField(self.Depths, np.where(U.data>0, CA_grad_back.data, \
+            CA_grad_forw.data))
+
+        CC_grad_back = CC._apply_operator("grad_back", self.bc_CC)
+        CC_grad_forw = CC._apply_operator("grad_forw", self.bc_CC)    
+        CC_grad = ScalarField(self.Depths, np.where(U.data>0, CC_grad_back.data, \
+            CC_grad_forw.data))
+
         W = self.presum - self.rhorat * Phi ** 2 * F
         
-        # Wslash = - self.rhorat * 2 * (Phi - (Phi + 5) * np.exp(10 - 10 / Phi))
+        dCA_dt = - U * CA_grad - self.Da * ((1 - CA) \
+                 * coA + self.lambda_ * CA * coC)
 
-        dCA_dt = - U * CA.gradient(self.bc_CA)[0] - self.Da * ((1 - CA) * coA + self.lambda_ * CA * coC)
-
-        dCC_dt = - U * CC.gradient(self.bc_CC)[0] + self.Da * (self.lambda_ * (1 - CC) * coC + CC * coA)
+        dCC_dt = - U * CC_grad + self.Da * (self.lambda_ \
+                 * (1 - CC) * coC + CC * coA)
 
         # Implementing equation 6 from l'Heureux.
-        denominator = 1 - 2 * ScalarField(self.Depths, np.log(Phi.data))
-        Phi_denom = Phi/denominator
-        dPhi_dx = Phi.gradient(self.bc_Phi)[0]
-        grad_Phi_denom = dPhi_dx * (denominator + 2) / denominator ** 2
+        denominator = 1 - 2 * np.log(Phi)
 
-        common_helper = coA - self.lambda_ * coC
+        # Fiadeiro-Veronis scheme for equations 42 and 43
+        # from l'Heureux. 
+        common_Peclet  = W * self.delta_x / 2. 
+        Peclet_cCa =  common_Peclet * denominator/ self.dCa       
+        sigma_cCa_data = LMAHeureuxPorosityDiff.calculate_sigma(\
+            Peclet_cCa.data, W.data, self.Peclet_min, self.Peclet_max)
+        sigma_cCa = ScalarField(self.Depths, sigma_cCa_data)
 
-        dcCa_dx = cCa.gradient(self.bc_cCa)[0]
-        # dcCa_dt = ((Phi * self.dCa * dcCa_dx/denominator).gradient(self.bc_cCa))/Phi -W * dcCa_dx \
-        #          + self.Da * (1 - Phi) * (self.delta - cCa) * (coA - self.lambda_ * coC)/Phi
-       
-        dcCa_dt = (dcCa_dx * grad_Phi_denom + Phi_denom * cCa.laplace(self.bc_cCa)) \
-                  * self.dCa /Phi -W * dcCa_dx \
-                  + self.Da * (1 - Phi) * (self.delta - cCa) * common_helper / Phi
-
-        dcCO3_dx = cCO3.gradient(self.bc_cCO3)[0]
-        # dcCO3_dt = (Phi * self.dCO3 * dcCO3_dx/denominator).gradient(self.bc_cCO3)/Phi \
-        #           -W * dcCO3_dx + self.Da * (1 - Phi) * (self.delta - cCO3) * \
-        #           (coA - self.lambda_ * coC)/Phi
-
-        dcCO3_dt = (dcCO3_dx * grad_Phi_denom + Phi_denom * cCO3.laplace(self.bc_cCO3)) \
-                   * self.dCO3/Phi -W * dcCO3_dx \
-                   + self.Da * (1 - Phi) * (self.delta - cCO3) * common_helper / Phi
-
+        Peclet_cCO3 = common_Peclet * denominator/ self.dCO3      
+        sigma_cCO3_data = LMAHeureuxPorosityDiff.calculate_sigma(\
+            Peclet_cCO3.data, W.data, self.Peclet_min, self.Peclet_max)
+        sigma_cCO3 = ScalarField(self.Depths, sigma_cCO3_data)
 
         dPhi = self.auxcon * F * (Phi ** 3) / (1 - Phi)
+        Peclet_Phi = common_Peclet / dPhi
+        sigma_Phi_data = LMAHeureuxPorosityDiff.calculate_sigma(\
+            Peclet_Phi.data, W.data, self.Peclet_min, self.Peclet_max)
+        sigma_Phi = ScalarField(self.Depths, sigma_Phi_data)
 
-        dW_dx = -self.rhorat * dPhi_dx * (2 * Phi * F + 10 * (F - 1))
+        # Instead of the default central differenced gradient from py-pde
+        # construct forward and backward differenced gradients and give them
+        # appropriate weights according to a Fiadeiro-Veronis scheme.
+        cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
+        cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)      
+        cCa_grad = 0.5 * ((1-sigma_cCa) * cCa_grad_forw +\
+             (1+sigma_cCa) * cCa_grad_back)
+        cCa_laplace = cCa.laplace(self.bc_cCa)
 
-        # dPhi_dt = ((self.auxcon * ((Phi ** 3) / (1 - Phi)) * \
-        #           (1 - np.exp(10 - 10 / Phi))) * dPhi_dx).gradient(self.bc_Phi) \
-        #          + self.Da * (1 - Phi) * (coA - self.lambda_ * coC) - dPhi_dx * \
-        #            (W + Wslash * Phi + dPhi_dx * dPhislash)
+        cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
+        cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
+        cCO3_grad = 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw +\
+             (1+sigma_cCO3) * cCO3_grad_back)
+        cCO3_laplace = cCO3.laplace(self.bc_cCO3)
 
+        Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
+        Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
+        Phi_grad = 0.5 * ((1-sigma_Phi) * Phi_grad_forw +\
+             (1+sigma_Phi) * Phi_grad_back)
+        Phi_laplace = Phi.laplace(self.bc_Phi)
 
-        # This is closer to the original form of (43) from l' Heureux than
-        # the Matlab implementation.
-        dPhi_dt = - (Phi * dW_dx + W * dPhi_dx) \
-                  + dPhi * Phi.laplace(self.bc_Phi) \
+        Phi_denom = Phi/denominator
+        grad_Phi_denom = Phi_grad * (denominator + 2) / denominator ** 2
+
+        common_helper = coA - self.lambda_ * coC
+       
+        dcCa_dt = (cCa_grad * grad_Phi_denom + Phi_denom * cCa_laplace) \
+                  * self.dCa /Phi - W * cCa_grad \
+                  + self.Da * (1 - Phi) * (self.delta - cCa) * common_helper / Phi
+
+        dcCO3_dt = (cCO3_grad * grad_Phi_denom + Phi_denom * cCO3_laplace) \
+                   * self.dCO3/Phi - W * cCO3_grad \
+                   + self.Da * (1 - Phi) * (self.delta - cCO3) * common_helper / Phi
+
+        dW_dx = -self.rhorat * Phi_grad * (2 * Phi * F + 10 * (F - 1))
+
+        dPhi_dt = - (Phi * dW_dx + W * Phi_grad) \
+                  + dPhi * Phi_laplace \
                   + self.Da * (1 - Phi) * common_helper
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data.ravel()
@@ -222,59 +268,25 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # Instead of the default central differenced gradient from py-pde
         # construct forward and backward differenced gradients and apply
         # either one of them, based on the sign of U.
-        CA_grad_back = CA.copy()
-        CA_grad_forw = CA.copy()
-        CA_grad_back.data[:] = 0
-        CA_grad_forw.data[:] = 0
-        CA.set_ghost_cells(self.bc_CA)
-        self.backward_diff(CA._data_full, out = CA_grad_back.data)
-        self.forward_diff(CA._data_full, out = CA_grad_forw.data)
+        CA_grad_back = CA._apply_operator("grad_back", self.bc_CA)
+        CA_grad_forw = CA._apply_operator("grad_forw", self.bc_CA)
 
-        # Instead of the default central differenced gradient from py-pde
-        # construct forward and backward differenced gradients and apply
-        # either one of them, based on the sign of U.
-        CC_grad_back = CC.copy()
-        CC_grad_forw = CC.copy()
-        CC_grad_back.data[:] = 0
-        CC_grad_forw.data[:] = 0
-        CC.set_ghost_cells(self.bc_CC)
-        self.backward_diff(CC._data_full, out = CC_grad_back.data)
-        self.forward_diff(CC._data_full, out = CC_grad_forw.data)
+        CC_grad_back = CC._apply_operator("grad_back", self.bc_CC)
+        CC_grad_forw = CC._apply_operator("grad_forw", self.bc_CC)        
 
         # Instead of the default central differenced gradient from py-pde
         # construct forward and backward differenced gradients and give them
         # appropriate weights according to a Fiadeiro-Veronis scheme.
-        cCa_grad_back = cCa.copy()
-        cCa_grad_forw = cCa.copy()
-        cCa_grad_back.data[:] = 0
-        cCa_grad_forw.data[:] = 0
-        cCa.set_ghost_cells(self.bc_cCa)
-        self.backward_diff(cCa._data_full, out = cCa_grad_back.data)
-        self.forward_diff(cCa._data_full, out = cCa_grad_forw.data)
+        cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
+        cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)      
         cCa_laplace = cCa.laplace(self.bc_cCa)
 
-        # Instead of the default central differenced gradient from py-pde
-        # construct forward and backward differenced gradients and give them
-        # appropriate weights according to a Fiadeiro-Veronis scheme.
-        cCO3_grad_back = cCO3.copy()
-        cCO3_grad_forw = cCO3.copy()
-        cCO3_grad_back.data[:] = 0
-        cCO3_grad_forw.data[:] = 0
-        cCO3.set_ghost_cells(self.bc_cCO3)
-        self.backward_diff(cCO3._data_full, out = cCO3_grad_back.data)
-        self.forward_diff(cCO3._data_full, out = cCO3_grad_forw.data)
+        cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
+        cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
         cCO3_laplace = cCO3.laplace(self.bc_cCO3)
 
-        # Instead of the default central differenced gradient from py-pde
-        # construct forward and backward differenced gradients and give them
-        # appropriate weights according to a Fiadeiro-Veronis scheme.
-        Phi_grad_back = Phi.copy()
-        Phi_grad_forw = Phi.copy()
-        Phi_grad_back.data[:] = 0
-        Phi_grad_forw.data[:] = 0
-        Phi.set_ghost_cells(self.bc_Phi)
-        self.backward_diff(Phi._data_full, out = Phi_grad_back.data)
-        self.forward_diff(Phi._data_full, out = Phi_grad_forw.data)
+        Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
+        Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
         Phi_laplace = Phi.laplace(self.bc_Phi)
 
         rhs = LMAHeureuxPorosityDiff.pde_rhs(CA.data, CC.data, cCa.data, \
@@ -291,7 +303,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         return rhs
 
-    @njit(nogil = True, parallel = True, fastmath = True)
+    @njit
     def pde_rhs(CA, CC, cCa, \
             cCO3, Phi, KRat, \
             m1, m2, n1, n2, nu1, nu2, \
@@ -331,7 +343,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3_grad = np.empty(no_depths)
         Phi_grad = np.empty(no_depths)
 
-        for i in prange(no_depths):
+        for i in range(no_depths):
             F[i] = 1 - np.exp(10 - 10 / Phi[i])
 
             U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
@@ -368,7 +380,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
             one_minus_Phi[i] = 1 - Phi[i]                 
             dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
-            Peclet_Phi = W[i] * delta_x * denominator[i] / (2. * dPhi[i])
+            Peclet_Phi = W[i] * delta_x / (2. * dPhi[i])
             if np.abs(Peclet_Phi) < Peclet_min:
                 sigma_Phi = 0
             elif np.abs(Peclet_Phi) > Peclet_max:
@@ -539,19 +551,19 @@ class LMAHeureuxPorosityDiff(PDEBase):
         cCO3 = y[self.cCO3_sl]
         Phi = y[self.Phi_sl]  
 
-        jacob_csr = csr_matrix(Jacobian(CA, CC, cCa, cCO3, Phi, \
-            self.KRat, self.m1, self.m2, \
-            self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
-            self.not_too_shallow, self.lambda_, \
-            self.Da, self.delta, \
-            no_depths = self.Depths.shape[0], no_fields = self.no_fields))
-
-        # jacob_csr = Jacobian(CA, CC, cCa, cCO3, Phi, \
+        # jacob_csr = csr_matrix(Jacobian(CA, CC, cCa, cCO3, Phi, \
         #     self.KRat, self.m1, self.m2, \
         #     self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
         #     self.not_too_shallow, self.lambda_, \
         #     self.Da, self.delta, \
-        #     no_depths = self.Depths.shape[0], no_fields = self.no_fields)
+        #     no_depths = self.Depths.shape[0], no_fields = self.no_fields))
+
+        jacob_csr = Jacobian(CA, CC, cCa, cCO3, Phi, \
+            self.KRat, self.m1, self.m2, \
+            self.n1, self.n2, self.nu1, self.nu2, self.not_too_deep, \
+            self.not_too_shallow, self.lambda_, \
+            self.Da, self.delta, \
+            no_depths = self.Depths.shape[0], no_fields = self.no_fields)
         # Check that we should have 5**2 sets of Jacobian values for 5 fields,
         # with each set comprised of no_depth numbers.
         """     no_sets_of_jacobian_values = len(all_jac_values_rows_and_cols)

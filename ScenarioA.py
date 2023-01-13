@@ -1,4 +1,3 @@
-# Last modified by Niklas Hohmann (n.hohmann@uw.edu.pl) Oct 2021
 ## Parameters for Scenario A
 #Taken from table 1 (p. 7)
 from tracemalloc import start
@@ -23,8 +22,8 @@ cCa0 = 0.326e-3/np.sqrt(KC)
 cCaIni = cCa0
 cCO30 = 0.326e-3/np.sqrt(KC)
 cCO3Ini = cCO30
-Phi0 = 0.65
-PhiIni = 0.65
+Phi0 = 0.6
+PhiIni = 0.5
 
 ShallowLimit = 50
 
@@ -89,9 +88,7 @@ eq = LMAHeureuxPorosityDiff(Depths, slices_for_all_fields, CA0, CC0, cCa0, cCO30
                             muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
                             not_too_shallow, not_too_deep)     
 
-depths = ScalarField.from_expression(Depths, "x").data * Xstar                              
-
-timeMult=10
+timeMult = 1
 end_time = timeMult * Tstar/Tstar
 # Number of times to evaluate, for storage.
 no_t_eval = 100
@@ -110,8 +107,8 @@ with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
                 atol = 1e-3, rtol = 1e-3, t_eval= t_eval, \
                 events = [eq.zeros, eq.zeros_CA, eq.zeros_CC, \
                 eq.ones_CA_plus_CC, eq.ones_Phi, eq.zeros_U, eq.zeros_W],  \
-                method="RK45", dense_output= True,\
-                first_step = None, jac = eq.jac, \
+                method="RK23", dense_output= True,\
+                first_step = end_time/1e6, jac = eq.jac, \
                 args=[pbar, [0, 1/number_of_progress_updates]])
 end_computing = time.time()
 
@@ -171,6 +168,7 @@ else:
 plt.title("Situation after " + " {:.2f} ".format(covered_time) + " years")
 # Marker size
 ms = 3
+depths = ScalarField.from_expression(Depths, "x").data * Xstar
 plt.plot(depths, (sol.y)[slices_for_all_fields[0], -1], "v", ms = ms, label = "CA")
 plt.plot(depths, (sol.y)[slices_for_all_fields[1], -1], "^", ms = ms, label = "CC")
 plt.plot(depths, (sol.y)[slices_for_all_fields[2], -1], ">", ms = ms, label = "cCa")
