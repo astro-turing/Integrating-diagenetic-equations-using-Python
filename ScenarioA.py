@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
 from pde import CartesianGrid, ScalarField
-from pde.grids.operators.cartesian import _make_derivative
 from scipy.integrate import solve_ivp
 import time
 from tqdm import tqdm
@@ -23,8 +22,8 @@ cCa0 = 0.326e-3/np.sqrt(KC)
 cCaIni = cCa0
 cCO30 = 0.326e-3/np.sqrt(KC)
 cCO3Ini = cCO30
-Phi0 = 0.65
-PhiIni = 0.65
+Phi0 = 0.6
+PhiIni = 0.5
 
 ShallowLimit = 50
 
@@ -59,16 +58,12 @@ PhiInfty = 0.01
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-number_of_depths = 100
+number_of_depths = 200
 
 max_depth = 500
 
 Depths = CartesianGrid([[0, max_depth * (1 + 0.5/number_of_depths)/Xstar]],\
                         [number_of_depths], periodic=False)
-Depths.register_operator("grad_back", \
-    lambda grid: _make_derivative(grid, method="backward"))
-Depths.register_operator("grad_forw", \
-    lambda grid: _make_derivative(grid, method="forward"))                    
 
 AragoniteSurface = ScalarField(Depths, CAIni)
 CalciteSurface = ScalarField(Depths, CCIni)
@@ -108,12 +103,12 @@ number_of_progress_updates = 100000
 
 start_computing = time.time()
 with tqdm(total=number_of_progress_updates, unit="‰") as pbar:
-    sol = solve_ivp(fun = eq.fun_numba, t_span = (0, end_time), y0 = y0, \
+    sol = solve_ivp(fun = eq.fun, t_span = (0, end_time), y0 = y0, \
                 atol = 1e-3, rtol = 1e-3, t_eval= t_eval, \
                 events = [eq.zeros, eq.zeros_CA, eq.zeros_CC, \
                 eq.ones_CA_plus_CC, eq.ones_Phi, eq.zeros_U, eq.zeros_W],  \
-                method="LSODA", dense_output= True,\
-                first_step = None, jac = eq.jac, \
+                method="RK23", dense_output= True,\
+                first_step = end_time/1e6, jac = eq.jac, \
                 args=[pbar, [0, 1/number_of_progress_updates]])
 end_computing = time.time()
 
