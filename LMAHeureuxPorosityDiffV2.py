@@ -79,8 +79,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
                        self.AragoniteSurface.grid._axes_coords[0][0]
         self.PhiIni = PhiIni
         self.F_fixed = 1 - np.exp(10 - 10 / self.PhiIni)
-        self.dPhi_fixed = self.auxcon * self.F_fixed * \
-                          self.PhiIni ** 3 / (1 - self.PhiIni)
+        self.dPhi_fixed = self.auxcon * self.F_fixed * 1e4 *\
+                          self.PhiIni ** 3 / (1 - self.PhiIni) 
 
     def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
