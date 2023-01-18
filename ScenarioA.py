@@ -51,7 +51,7 @@ k4 = k3
 muA = 100.09
 DCa = 131.9
 DCO3 = 272.6
-b = 5
+b = 5e-4
 
 PhiNR = Phi0
 
