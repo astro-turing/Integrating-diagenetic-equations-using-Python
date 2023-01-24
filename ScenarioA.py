@@ -104,7 +104,7 @@ tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
 # Store your results somewhere in a subdirectory of a parent directory.
 store_folder = "../Results/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S" + "/")
 os.makedirs(store_folder)
-stored_results = store_folder + "LMAHeureuxPorosityDiff.npz"
+stored_results = store_folder + "LMAHeureuxPorosityDiff.hdf5"
 storage = FileStorage(stored_results)
 
 sol, info = eq.solve(state, t_range=end_time, dt=time_step, method="explicit", \
