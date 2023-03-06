@@ -24,8 +24,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # integration, by using only backward differencing for the spatial
         # derivatives in the right-hand sides of the time derivative equations
         # for CA and CC.
-        self.bc_CA = [{"value": CA0}, {"curvature" : 0}]
-        self.bc_CC = [{"value": CC0}, {"curvature": 0}]
+        self.bc_CA = [{"value": CA0}, {"value" : 1e99}]
+        self.bc_CC = [{"value": CC0}, {"value": 1e99}]
         self.bc_cCa = [{"value": cCa0}, {"derivative": 0}]
         self.bc_cCO3 = [{"value": cCO30}, {"derivative": 0}]
         self.bc_Phi = [{"value": Phi0}, {"derivative": 0}]
