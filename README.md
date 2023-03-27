@@ -1,6 +1,6 @@
 # Integrating diagenetic equations using Python
 
-This repo was created as an attempt to reproduce the plots shown at the kickoff of the AstroTOM ("Turing or Milankovitch") project by Niklas Hohmann, from his Matlab scripts. 
+This repo was created as an attempt to reproduce the plots shown at the kickoff of the AstroTOM ("Turing or Milankovitch") project by Niklas Hohmann, from his Matlab scripts (available at [github.com/MindTheGap-ERC/LMA-Matlab](https://github.com/MindTheGap-ERC/LMA-Matlab)). 
 
 AstroTOM is an OpenSSI 2021b project from the Netherlands eScience Center and Utrecht University (UU).
 
