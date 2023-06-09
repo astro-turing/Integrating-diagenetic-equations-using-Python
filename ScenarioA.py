@@ -24,8 +24,8 @@ cCa0 = 0.326e-3/np.sqrt(KC)
 cCaIni = cCa0
 cCO30 = 0.326e-3/np.sqrt(KC)
 cCO3Ini = cCO30
-Phi0 = 0.6
-PhiIni = 0.5
+Phi0 = 0.8
+PhiIni = 0.8
 
 ShallowLimit = 50
 
@@ -88,7 +88,7 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, 
                             Phi0, sedimentationrate, Xstar, Tstar, k1, k2, 
                             k3, k4, m1, m2, n1, n2, b, beta, rhos, rhow, rhos0, 
-                            KA, KC, muA, D0Ca, PhiNR, PhiInfty, DCa, DCO3, 
+                            KA, KC, muA, D0Ca, PhiNR, PhiInfty, PhiIni, DCa, DCO3, 
                             not_too_shallow, not_too_deep)             
 
 end_time = Tstar/Tstar

@@ -10,7 +10,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
                 CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, Phi0, 
                 sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, 
                 n2, b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, 
-                PhiInfty, DCa, DCO3, not_too_shallow, not_too_deep):
+                PhiInfty, PhiIni, DCa, DCO3, not_too_shallow, not_too_deep):
 
         self.AragoniteSurface = AragoniteSurface
         self.CalciteSurface = CalciteSurface
@@ -84,6 +84,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # Need this number for Fiadeiro-Veronis differentiation.
         self.delta_x = self.AragoniteSurface.grid._axes_coords[0][1] - \
                        self.AragoniteSurface.grid._axes_coords[0][0]
+        self.PhiIni = PhiIni
+        self.F_fixed = 1 - np.exp(10 - 10 / self.PhiIni)
+        self.dPhi_fixed = self.auxcon * self.F_fixed *\
+                          self.PhiIni ** 3 / (1 - self.PhiIni) 
 
     def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
@@ -167,7 +171,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
             Peclet_cCO3.data, W.data, self.Peclet_min, self.Peclet_max)
         sigma_cCO3 = ScalarField(state.grid, sigma_cCO3_data)
 
-        dPhi = self.auxcon * F * (Phi ** 3) / one_minus_Phi
+        # dPhi = self.auxcon * F * (Phi ** 3) / one_minus_Phi
+        dPhi = self.dPhi_fixed
 
         Peclet_Phi = common_Peclet / dPhi
         sigma_Phi_data = LMAHeureuxPorosityDiff.calculate_sigma(\
@@ -231,8 +236,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         dCa = self.dCa
         dCO3 = self.dCO3
         delta = self.delta
-        auxcon = self.auxcon
+        auxcon = self.auxcon        
         # The following three numbers are also needed for Fiadeiro-Veronis.
+        dPhi_fixed = self.dPhi_fixed
         Peclet_min = self.Peclet_min
         Peclet_max = self.Peclet_max
         delta_x = state.grid._axes_coords[0][1] - state.grid._axes_coords[0][0]
@@ -346,7 +352,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
                         1/Peclet_cCO3
 
                 one_minus_Phi[i] = 1 - Phi[i]                 
-                dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
+                dPhi[i] = dPhi_fixed
                 Peclet_Phi = W[i] * delta_x / (2. * dPhi[i])
                 if np.abs(Peclet_Phi) < Peclet_min:
                     sigma_Phi = 0
