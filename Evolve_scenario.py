@@ -1,10 +1,8 @@
-# Last modified by Niklas Hohmann (n.hohmann@uw.edu.pl) Oct 2021
-## Parameters for Scenario A
-#Taken from table 1 (p. 7)
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
-from LMAHeureuxPorosityDiffV2 import LMAHeureuxPorosityDiff
+from LHeureux_model import LMAHeureuxPorosityDiff
+from marlpde.marlpde import Scenario
 from pde import CartesianGrid, ScalarField, FileStorage, plot_kymographs
 from pde import Controller, PlotTracker
 from pde import ScipySolver, ExplicitSolver
@@ -12,20 +10,20 @@ from pde.grids.operators.cartesian import _make_derivative
 import time
 import os
 
-Scenario = 'A'
+Scenario_parameters = Scenario()
 
-KA = 10 ** (- 6.19)
-KC = 10 ** (- 6.37)
-CA0 = 0.6
+KA = Scenario_parameters.Ka.magnitude
+KC = Scenario_parameters.Kc.magnitude
+CA0 = Scenario_parameters.cara00.magnitude
 CAIni = CA0
-CC0 = 0.3
+CC0 = Scenario_parameters.ccal00.magnitude
 CCIni = CC0
-cCa0 = 0.326e-3/np.sqrt(KC)
+cCa0 = Scenario_parameters.ca0.magnitude/np.sqrt(KC)
 cCaIni = cCa0
-cCO30 = 0.326e-3/np.sqrt(KC)
+cCO30 = Scenario_parameters.co30.magnitude/np.sqrt(KC)
 cCO3Ini = cCO30
-Phi0 = 0.8
-PhiIni = 0.8
+Phi0 = Scenario_parameters.phi0.magnitude
+PhiIni = Scenario_parameters.phiin.magnitude
 
 ShallowLimit = 50
 

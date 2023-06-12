@@ -15,6 +15,7 @@ scipy = "*"
 py-pde = "*"
 tqdm = "*"
 h5py = "*"
+pint = "*"
 
 [dev-packages]
 pylint = "*"
