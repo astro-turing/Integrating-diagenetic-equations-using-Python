@@ -14,46 +14,48 @@ Scenario_parameters = Scenario()
 
 KA = Scenario_parameters.Ka.magnitude
 KC = Scenario_parameters.Kc.magnitude
-CA0 = Scenario_parameters.cara00.magnitude
-CAIni = CA0
-CC0 = Scenario_parameters.ccal00.magnitude
-CCIni = CC0
+CA0 = Scenario_parameters.cara0.magnitude
+CAIni = Scenario_parameters.cara00.magnitude
+CC0 = Scenario_parameters.ccal0.magnitude
+CCIni = Scenario_parameters.ccal00.magnitude
 cCa0 = Scenario_parameters.ca0.magnitude/np.sqrt(KC)
-cCaIni = cCa0
+cCaIni = Scenario_parameters.ca00.magnitude/np.sqrt(KC)
 cCO30 = Scenario_parameters.co30.magnitude/np.sqrt(KC)
-cCO3Ini = cCO30
+cCO3Ini = Scenario_parameters.co300.magnitude/np.sqrt(KC)
 Phi0 = Scenario_parameters.phi0.magnitude
-PhiIni = Scenario_parameters.phiin.magnitude
+PhiIni = Scenario_parameters.phi00.magnitude
 
-ShallowLimit = 50
+ShallowLimit = Scenario_parameters.xdis.magnitude
 
-DeepLimit = 150
+DeepLimit = ShallowLimit + Scenario_parameters.Th.magnitude
 
-sedimentationrate = 0.1
-m1 = 2.48
+sedimentationrate = Scenario_parameters.S.magnitude
+m1 = Scenario_parameters.m.magnitude
 m2 = m1
-n1 = 2.8
+n1 = Scenario_parameters.nn.magnitude
 n2 = n1
-rhos0 = 2.95 * CA0 + 2.71 * CC0 + 2.8 * (1 - (CA0 + CC0))
+rhoa = Scenario_parameters.rhoa.magnitude
+rhoc = Scenario_parameters.rhoc.magnitude
+rhot = Scenario_parameters.rhot.magnitude
+rhos0 = rhoa * CA0 + rhoc * CC0 + rhot * (1 - (CA0 + CC0))
 
 rhos = rhos0
 
-rhow = 1.023
-beta = 0.1
-D0Ca = 131.9
-k1 = 1
-
-k2 = k1
-k3 = 0.1
-k4 = k3
-muA = 100.09
-DCa = 131.9
-DCO3 = 272.6
-b = 5e-4
+rhow = Scenario_parameters.rhow.magnitude
+beta = Scenario_parameters.beta.magnitude
+D0Ca = Scenario_parameters.D0ca.magnitude
+k1 = Scenario_parameters.k1.magnitude
+k2 = Scenario_parameters.k2.magnitude
+k3 = Scenario_parameters.k3.magnitude
+k4 = Scenario_parameters.k4.magnitude
+muA = Scenario_parameters.mua.magnitude
+DCa = Scenario_parameters.D0ca.magnitude
+DCO3 = Scenario_parameters.D0co3.magnitude
+b = Scenario_parameters.b.magnitude/1e4
 
 PhiNR = Phi0
 
-PhiInfty = 0.01
+PhiInfty = Scenario_parameters.phiinf.magnitude
 
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
