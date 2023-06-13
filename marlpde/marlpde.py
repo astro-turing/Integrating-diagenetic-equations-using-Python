@@ -24,7 +24,7 @@ class Scenario:
     Ka: quantity     = 10**(-6.19) * u.M**2
     Kc: quantity     = 10**(-6.37) * u.M**2
     beta: quantity   = 0.1 * u.cm / u.a
-    b: quantity      = 10.0 / u.kPa
+    b: quantity      = 5.0 / u.kPa
     k1: quantity     = 1.0 / u.a
     k2: quantity     = 1.0 / u.a
     k3: quantity     = 0.1 / u.a
