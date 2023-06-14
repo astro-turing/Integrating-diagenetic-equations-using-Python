@@ -1,16 +1,17 @@
+from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
-from datetime import datetime
-from LHeureux_model import LMAHeureuxPorosityDiff
-from marlpde.marlpde import Scenario
 from pde import CartesianGrid, ScalarField, FileStorage, plot_kymographs
 from pde import Controller, PlotTracker
 from pde import ScipySolver, ExplicitSolver
 from pde.grids.operators.cartesian import _make_derivative
 import time
 import os
+from LHeureux_model import LMAHeureuxPorosityDiff
+from marlpde.marlpde import Scenario, Solver
 
 Scenario_parameters = Scenario()
+Solver_parameters = Solver()
 
 KA = Scenario_parameters.Ka.magnitude
 KC = Scenario_parameters.Kc.magnitude
@@ -52,16 +53,16 @@ muA = Scenario_parameters.mua.magnitude
 DCa = Scenario_parameters.D0ca.magnitude
 DCO3 = Scenario_parameters.D0co3.magnitude
 b = Scenario_parameters.b.magnitude/1e4
-
-PhiNR = Phi0
-
+PhiNR = Scenario_parameters.phi00.magnitude
 PhiInfty = Scenario_parameters.phiinf.magnitude
 
 Xstar = D0Ca / sedimentationrate
 Tstar = Xstar / sedimentationrate 
 
-max_depth = 500
-number_of_depths = 200
+max_depth = Scenario_parameters.length.magnitude
+
+number_of_depths = Solver_parameters.N
+
 depths = CartesianGrid([[0, max_depth/Xstar]], [number_of_depths], periodic=False)
 # We will be needing forward and backward differencing for
 # Fiadeiro-Veronis differentiation.
@@ -79,10 +80,10 @@ PorSurface = ScalarField(depths, PhiIni)
 # I need those two fields for computing coA, which is rather involved.
 # There may be a simpler way of selecting these depths, but I haven't
 # found one yet. For now these two Heaviside step functions.
-not_too_shallow = ScalarField.from_expression(depths, 
-                  "heaviside(x-{}, 0)".format(ShallowLimit/Xstar))
-not_too_deep = ScalarField.from_expression(depths, 
-               "heaviside({}-x, 0)".format(DeepLimit/Xstar))    
+not_too_shallow = ScalarField.from_expression(depths,
+                  f"heaviside(x-{ShallowLimit/Xstar}, 0)")
+not_too_deep = ScalarField.from_expression(depths,
+               f"heaviside({DeepLimit/Xstar}-x, 0)")    
 
 eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface, 
                             CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, 
@@ -91,9 +92,9 @@ eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface,
                             KA, KC, muA, D0Ca, PhiNR, PhiInfty, PhiIni, DCa, DCO3, 
                             not_too_shallow, not_too_deep)             
 
-end_time = Tstar/Tstar
-number_of_steps = 1e6
-time_step = end_time/number_of_steps
+end_time = Solver_parameters.tmax/Tstar
+time_step = Solver_parameters.dt
+number_of_steps = end_time/time_step
 # tspan = np.arange(0,end_time+time_step, time_step)
 
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
