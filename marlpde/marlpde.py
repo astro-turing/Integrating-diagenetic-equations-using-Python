@@ -54,7 +54,7 @@ class Scenario:
 class Solver:
     dt: float     = 1.e-6
     eps: float    = 1.e-2
-    tmax: int     = 13_190
+    tmax: int     = Scenario().D0ca.magnitude/Scenario().S.magnitude**2
     outt: int     =   1_000      # timesteps inbetween writing
     outx: int     =  25_000
     N: int        = 200
