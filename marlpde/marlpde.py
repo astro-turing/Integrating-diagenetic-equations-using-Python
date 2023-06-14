@@ -52,9 +52,9 @@ class Scenario:
 
 @dataclass
 class Solver:
-    dt: float     = 1.e-5
+    dt: float     = 1.e-6
     eps: float    = 1.e-2
-    tmax: int     = 100_000
+    tmax: int     = 13_190
     outt: int     =   1_000      # timesteps inbetween writing
     outx: int     =  25_000
     N: int        = 200
