@@ -1,10 +1,9 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
-from numba import njit, prange
+from numba import njit
 np.seterr(divide="raise", over="raise", under="raise", invalid="raise")
     
 class LMAHeureuxPorosityDiff(PDEBase):
-    """SIR-model with diffusive mobility"""
 
     def __init__(self, AragoniteSurface, CalciteSurface, CaSurface, 
                 CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, Phi0, 
