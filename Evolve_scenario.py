@@ -111,38 +111,6 @@ sol, info = eq.solve(state, t_range=end_time, dt=time_step, method="explicit", \
                scheme = "rk", tracker=["progress", storage.tracker(0.01)], \
                backend = "numba", ret_info = True, adaptive = True)
 print()
-print("Meta-information about the solution : {}".format(info))        
+print(f"Meta-information about the solution : {info}")        
 
 sol.plot()
-
-""" trackers = [
-    "progress",  # show progress bar during simulation
-    "steady_state",  # abort when steady state is reached
-    storage.tracker(interval=1),  # store data every simulation time unit
-    PlotTracker(show=True),  # show images during simulation
-    # print some output every 5 real seconds:
-    PrintTracker(interval=RealtimeIntervals(duration=5)),
-]
-
-
-solver = ScipySolver(eq, method = "Radau", vectorized = False, backend="numba",\
-                     first_step = time_step)
-solver = ExplicitSolver(eq, scheme="rk", adaptive=True, \
-    backend="numba", tolerance=1e-2)   
-controller1 = Controller(solver, t_range = (0, end_time), tracker=trackers)
-
-start_computing = time.time()
-
-sol = controller1.run(state, dt = time_step)
-
-end_computing = time.time()
-
-print("Time taken for running the controller is {0:.2f}s.".\
-    format(end_computing - start_computing))
-print()
-
-sol.label = "Explicit solver"
-print("Diagnostic information:")
-print(controller1.diagnostics)
-
-sol.plot() """
