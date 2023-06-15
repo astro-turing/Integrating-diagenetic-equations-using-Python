@@ -113,4 +113,18 @@ sol, info = eq.solve(state, t_range=end_time, dt=time_step, method="explicit", \
 print()
 print(f"Meta-information about the solution : {info}")        
 
-sol.plot()
+covered_time = Tstar * end_time
+plt.title(f"Situation after {covered_time:.2f} years")
+# Marker size
+ms = 3
+plotting_depths = ScalarField.from_expression(depths, "x").data * Xstar
+plt.plot(plotting_depths, sol.data[0], "v", ms = ms, label = "CA")
+plt.plot(plotting_depths, sol.data[1], "^", ms = ms, label = "CC")
+plt.plot(plotting_depths, sol.data[2], ">", ms = ms, label = "cCa")
+plt.plot(plotting_depths, sol.data[3], "<", ms = ms, label = "cCO3")
+plt.plot(plotting_depths, sol.data[4], "o", ms = ms, label = "Phi")
+plt.xlabel("Depth (cm)")
+plt.ylabel("Compositions and concentrations (dimensionless)")
+plt.legend(loc='upper right')
+plt.plot()
+plt.show()
