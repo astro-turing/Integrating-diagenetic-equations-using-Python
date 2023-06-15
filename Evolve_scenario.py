@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from datetime import datetime
 import os
 from pde.grids.operators.cartesian import _make_derivative
