@@ -60,9 +60,9 @@ Tstar = Xstar / sedimentationrate
 
 max_depth = Scenario_parameters.length.magnitude
 
-number_of_depths = Solver_parameters.N
+NUMBER_OF_DEPTHS = Solver_parameters.N
 
-depths = CartesianGrid([[0, max_depth/Xstar]], [number_of_depths], periodic=False)
+depths = CartesianGrid([[0, max_depth/Xstar]], [NUMBER_OF_DEPTHS], periodic=False)
 # We will be needing forward and backward differencing for
 # Fiadeiro-Veronis differentiation.
 depths.register_operator("grad_back", \
