@@ -1,11 +1,9 @@
 from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
-from pde import CartesianGrid, ScalarField, FileStorage, plot_kymographs
-from pde import Controller, PlotTracker
-from pde import ScipySolver, ExplicitSolver
+from pde import CartesianGrid, ScalarField, FileStorage
+from pde import PlotTracker
 from pde.grids.operators.cartesian import _make_derivative
-import time
 import os
 from LHeureux_model import LMAHeureuxPorosityDiff
 from marlpde.marlpde import Scenario, Solver
