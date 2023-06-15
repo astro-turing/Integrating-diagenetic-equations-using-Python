@@ -14,6 +14,7 @@ numba = "^0.56.4"
 h5py = "^3.7.0"
 matplotlib = "^3.7.1"
 pint = "^0.22"
+ipython = "^8.14.0"
 
 [tool.poetry.dev-dependencies]
 
