@@ -1,10 +1,10 @@
 from datetime import datetime
+import os
+from pde.grids.operators.cartesian import _make_derivative
 import numpy as np
 import matplotlib.pyplot as plt
 from pde import CartesianGrid, ScalarField, FileStorage
 from pde import PlotTracker
-from pde.grids.operators.cartesian import _make_derivative
-import os
 from LHeureux_model import LMAHeureuxPorosityDiff
 from marlpde.marlpde import Scenario, Solver
 
