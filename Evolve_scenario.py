@@ -6,7 +6,6 @@ from pde.grids.operators.cartesian import _make_derivative
 import numpy as np
 import matplotlib.pyplot as plt
 from pde import CartesianGrid, ScalarField, FileStorage
-from pde import PlotTracker
 from LHeureux_model import LMAHeureuxPorosityDiff
 from marlpde.marlpde import Scenario, Solver
 
@@ -99,8 +98,6 @@ number_of_steps = end_time/time_step
 state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                      CO3Surface, PorSurface)
 
-# simulate the pde
-tracker = PlotTracker(interval=10, plot_args={"vmin": 0, "vmax": 1.6})
 # Store your results somewhere in a subdirectory of a parent directory.
 store_folder = "../Results/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S" + "/")
 os.makedirs(store_folder)
