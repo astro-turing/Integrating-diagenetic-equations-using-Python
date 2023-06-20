@@ -14,6 +14,11 @@ quantity = u.Quantity
 
 @dataclass
 class Scenario:
+    '''
+    Sets all the Scenario parameter values from the FORTRAN code from 
+    L'Heureux (2018). Strictly, the initial and boundary porosities are not
+    part of the Scenario parameters, but they are included here.
+    '''
     mua: quantity    = 100.09 * u.g/u.mol
     rhoa: quantity   = 2.95 * u.g/u.cm**3
     rhoc: quantity   = 2.71 * u.g/u.cm**3
@@ -50,26 +55,26 @@ class Scenario:
     ccal00: quantity = 0.3 * u.dimensionless
     cara00: quantity = 0.6 * u.dimensionless
 
-def read_Scenario_parameters():
+def map_Scenario():
     '''
-       
+    Maps the Fortran 'Scenario' parameters to the equivalent parameters in the
+    Matlab and Python codes. These codes use slightly different parameter 
+    names. Besides the mapping, also a few numerical conversions are applied.
     '''
-    Scenario_parameters = Scenario()
+    mapping = {"KA": "Ka", "KC": "Kc"}
     
-    KA = Scenario_parameters.Ka.magnitude
-    KC = Scenario_parameters.Kc.magnitude
-    CA0 = Scenario_parameters.cara0.magnitude
-    CAIni = Scenario_parameters.cara00.magnitude
-    CC0 = Scenario_parameters.ccal0.magnitude
-    CCIni = Scenario_parameters.ccal00.magnitude
-    cCa0 = Scenario_parameters.ca0.magnitude/np.sqrt(KC)
-    cCaIni = Scenario_parameters.ca00.magnitude/np.sqrt(KC)
-    cCO30 = Scenario_parameters.co30.magnitude/np.sqrt(KC)
-    cCO3Ini = Scenario_parameters.co300.magnitude/np.sqrt(KC)
-    Phi0 = Scenario_parameters.phi0.magnitude
-    PhiIni = Scenario_parameters.phi00.magnitude
+    CA0 cara0
+    CAIni cara00
+    CC0 ccal0
+    CCIni ccal00
+    cCa0 ca0/np.sqrt(KC)
+    cCaIni ca00/np.sqrt(KC)
+    cCO30 co30/np.sqrt(KC)
+    cCO3Ini co300/np.sqrt(KC)
+    Phi0 phi0
+    PhiIni phi00
     
-    ShallowLimit = Scenario_parameters.xdis.magnitude
+    ShallowLimit xdis
     
     DeepLimit = ShallowLimit + Scenario_parameters.Th.magnitude
     
