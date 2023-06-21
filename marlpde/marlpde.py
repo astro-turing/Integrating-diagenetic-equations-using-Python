@@ -61,57 +61,47 @@ def map_Scenario():
     Matlab and Python codes. These codes use slightly different parameter 
     names. Besides the mapping, also a few numerical conversions are applied.
     '''
-    mapping = {"KA": "Ka", "KC": "Kc"}
-    
-    CA0 cara0
-    CAIni cara00
-    CC0 ccal0
-    CCIni ccal00
-    cCa0 ca0/np.sqrt(KC)
-    cCaIni ca00/np.sqrt(KC)
-    cCO30 co30/np.sqrt(KC)
-    cCO3Ini co300/np.sqrt(KC)
-    Phi0 phi0
-    PhiIni phi00
-    
-    ShallowLimit xdis
-    
-    DeepLimit = ShallowLimit + Scenario_parameters.Th.magnitude
-    
-    sedimentationrate = Scenario_parameters.S.magnitude
-    m1 = Scenario_parameters.m.magnitude
-    m2 = m1
-    n1 = Scenario_parameters.nn.magnitude
-    n2 = n1
-    rhoa = Scenario_parameters.rhoa.magnitude
-    rhoc = Scenario_parameters.rhoc.magnitude
-    rhot = Scenario_parameters.rhot.magnitude
-    rhos0 = rhoa * CA0 + rhoc * CC0 + rhot * (1 - (CA0 + CC0))
-    
-    rhos = rhos0
-    
-    rhow = Scenario_parameters.rhow.magnitude
-    beta = Scenario_parameters.beta.magnitude
-    D0Ca = Scenario_parameters.D0ca.magnitude
-    k1 = Scenario_parameters.k1.magnitude
-    k2 = Scenario_parameters.k2.magnitude
-    k3 = Scenario_parameters.k3.magnitude
-    k4 = Scenario_parameters.k4.magnitude
-    muA = Scenario_parameters.mua.magnitude
-    DCa = Scenario_parameters.D0ca.magnitude
-    DCO3 = Scenario_parameters.D0co3.magnitude
-    b = Scenario_parameters.b.magnitude/1e4
-    PhiNR = Scenario_parameters.phi00.magnitude
-    PhiInfty = Scenario_parameters.phiinf.magnitude
-    
-    Xstar = D0Ca / sedimentationrate
-    Tstar = Xstar / sedimentationrate 
-    
-    max_depth = Scenario_parameters.length.magnitude
-
-    return all_Scenario_parameters
-
-
+    mapping = {"Ka":"KA", 
+               "Kc":"KC", 
+               "cara0": "CA0", 
+               "cara00": "CAIni",
+               "ccal0": "CC0",
+               "ccal00": "CCIni",
+               "ca0/np.sqrt(KC)": "cCa0",            
+               "ca00/np.sqrt(KC)": "cCaIni",
+               "co30/np.sqrt(KC)": "cCO30",
+               "co300/np.sqrt(KC)": "cCO3Ini",
+               "phi0": "Phi0", 
+               "phi00":"PhiIni", 
+               "xdis": "ShallowLimit",
+               "ShallowLimit + Th": "DeepLimit",
+               "S": "sedimentationrate",
+               "m": "m1",
+               "m1": "m2",
+               "nn": "n1",
+               "n1": "n2",
+               "rhoa": "rhoa",
+               "rhoc": "rhoc",
+               "rhot": "rhot",
+               "rhoa * CA0 + rhoc * CC0 + rhot * (1 - (CA0 + CC0))": "rhos0",
+               "rhos0": "rhos",
+               "rhow": "rhow",
+               "beta": "beta",
+               "D0ca": "D0Ca",
+               "k1": "k1",
+               "k2": "k2",
+               "k3": "k3",
+               "k4": "k4",
+               "mua": "muA",
+               "D0ca": "DCa", 
+               "D0co3": "DCO3",  
+               "b/1e4": "b",  
+               "Phi0": "PhiNR",
+               "phiinf": "PhiInfty",
+               "D0Ca / sedimentationrate": "Xstar",
+               "Xstar / sedimentationrate": "Tstar",
+               "length": "max_depth"
+    }
 
 @dataclass
 class Solver:
