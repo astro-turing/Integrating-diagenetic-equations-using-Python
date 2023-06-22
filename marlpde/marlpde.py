@@ -3,11 +3,11 @@
 # import numpy
 import configparser
 from pathlib import Path
-from dataclasses import (dataclass, asdict)
+from dataclasses import (dataclass, asdict, make_dataclass, fields)
 from subprocess import (run)
 import h5py as h5
 from pint import UnitRegistry
-
+import numpy as np
 
 u = UnitRegistry()
 quantity = u.Quantity
@@ -61,20 +61,15 @@ def map_Scenario():
     Matlab and Python codes. These codes use slightly different parameter 
     names. Besides the mapping, also a few numerical conversions are applied.
     '''
-    mapping = {"Ka":"KA", 
+    mapping = {"Ka":"KA",
                "Kc":"KC", 
                "cara0": "CA0", 
                "cara00": "CAIni",
                "ccal0": "CC0",
                "ccal00": "CCIni",
-               "ca0/np.sqrt(KC)": "cCa0",            
-               "ca00/np.sqrt(KC)": "cCaIni",
-               "co30/np.sqrt(KC)": "cCO30",
-               "co300/np.sqrt(KC)": "cCO3Ini",
                "phi0": "Phi0", 
                "phi00":"PhiIni", 
                "xdis": "ShallowLimit",
-               "ShallowLimit + Th": "DeepLimit",
                "S": "sedimentationrate",
                "m": "m1",
                "m1": "m2",
@@ -83,7 +78,6 @@ def map_Scenario():
                "rhoa": "rhoa",
                "rhoc": "rhoc",
                "rhot": "rhot",
-               "rhoa * CA0 + rhoc * CC0 + rhot * (1 - (CA0 + CC0))": "rhos0",
                "rhos0": "rhos",
                "rhow": "rhow",
                "beta": "beta",
@@ -93,18 +87,58 @@ def map_Scenario():
                "k3": "k3",
                "k4": "k4",
                "mua": "muA",
-               "D0ca": "DCa", 
+               "D0Ca": "DCa", 
                "D0co3": "DCO3",  
-               "b/1e4": "b",  
                "Phi0": "PhiNR",
                "phiinf": "PhiInfty",
-               "D0Ca / sedimentationrate": "Xstar",
-               "Xstar / sedimentationrate": "Tstar",
                "length": "max_depth"
     }
 
+    all_fields = fields(Scenario)
+
+    allowed_fields = [field for field in all_fields
+                      if field.name in mapping.keys()]
+    
+    derived_fields = [(mapping[field.name], field.type, field.default.magnitude) 
+                      for field in allowed_fields]
+                    
+    # Here we append the fields that cannot be initialised directly from the
+    # Scenario dataclass.
+    derived_fields.append(("cCa0", float, None),
+                          ("cCaIni", float, None),
+                          ("cCO30"), float, None),
+                          ("cCO3Ini", float, None),
+                          ("DeepLimit", float, None),
+                          ("rhos0", float, None),
+                          ("Xstar", float, None),
+                          ("Tstar", float, None),
+                          ("b", float, None))   
+
+    def post_init(self):
+        # The Python parameters that need additional conversion
+        # are initialised here.   
+        self.cCa0 = self.ca0/np.sqrt(self.KC)
+        self.cCaIni = self.ca00/np.sqrt(self.KC)
+        self.cCO30 =  self.co30/np.sqrt(self.KC)
+        self.cCO3Ini = self.co300/np.sqrt(self.KC)
+        self.DeepLimit = self.ShallowLimit + self.Th
+        self.rhos0 = self.rhoa * self.CA0 + self.rhoc * self.CC0 + \
+                     self. rhot * (1 - (self.CA0 + self.CC0))
+        self.Xstar = self.D0Ca / self.sedimentationrate
+        self.Tstar = self.Xstar / self.sedimentationrate
+        self.b = self.b/1e4
+               
+    derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
+                                       namespace={"__post_init__": post_init})
+
+    return asdict(derived_dataclass())
+
 @dataclass
 class Solver:
+    '''
+    Initialises all the parameters for the solver.
+    So parameters like time interval, time step and tolerance.
+    '''
     dt: float     = 1.e-6
     eps: float    = 1.e-2
     tmax: int     = Scenario().D0ca.magnitude/Scenario().S.magnitude**2
