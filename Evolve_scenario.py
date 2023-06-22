@@ -4,13 +4,13 @@ from datetime import datetime
 import os
 from pde import CartesianGrid, ScalarField, FileStorage
 from pde.grids.operators.cartesian import _make_derivative
-import numpy as np
 import matplotlib.pyplot as plt
 from LHeureux_model import LMAHeureuxPorosityDiff
-from marlpde import marlpde
+from marlpde.marlpde import Map_Scenario, Solver
 
-def read_solver_parameters():
+def retrieve_solver_parameters():
     '''
+    Function to retrieve the solver parameters defined in marlpde.py.
     '''
     Solver_parameters = Solver()
     NUMBER_OF_DEPTHS = Solver_parameters.N
