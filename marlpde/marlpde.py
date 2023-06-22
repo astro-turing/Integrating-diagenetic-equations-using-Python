@@ -55,11 +55,15 @@ class Scenario:
     ccal00: quantity = 0.3 * u.dimensionless
     cara00: quantity = 0.6 * u.dimensionless
 
-def map_Scenario():
+def Map_Scenario():
     '''
     Maps the Fortran 'Scenario' parameters to the equivalent parameters in the
     Matlab and Python codes. These codes use slightly different parameter 
     names. Besides the mapping, also a few numerical conversions are applied.
+    To do these conversions, a number of FORTRAN parameters need to be passed on 
+    "as is", i.e. unchanged.
+    Units from Scenario are dropped, so only magnitudes (i.e. values) are 
+    retained.
     '''
     mapping = {"Ka":"KA",
                "Kc":"KC", 
@@ -67,29 +71,30 @@ def map_Scenario():
                "cara00": "CAIni",
                "ccal0": "CC0",
                "ccal00": "CCIni",
+               "ca0": "ca0",
+               "ca00": "ca00",
+               "co30": "co30",
+               "co300": "co300",               
                "phi0": "Phi0", 
                "phi00":"PhiIni", 
                "xdis": "ShallowLimit",
+               "Th": "Th",
                "S": "sedimentationrate",
                "m": "m1",
-               "m1": "m2",
                "nn": "n1",
-               "n1": "n2",
                "rhoa": "rhoa",
                "rhoc": "rhoc",
                "rhot": "rhot",
-               "rhos0": "rhos",
                "rhow": "rhow",
                "beta": "beta",
+               "b": "b",
                "D0ca": "D0Ca",
                "k1": "k1",
                "k2": "k2",
                "k3": "k3",
                "k4": "k4",
                "mua": "muA",
-               "D0Ca": "DCa", 
                "D0co3": "DCO3",  
-               "Phi0": "PhiNR",
                "phiinf": "PhiInfty",
                "length": "max_depth"
     }
@@ -97,22 +102,26 @@ def map_Scenario():
     all_fields = fields(Scenario)
 
     allowed_fields = [field for field in all_fields
-                      if field.name in mapping.keys()]
+                      if field.name in mapping]
     
     derived_fields = [(mapping[field.name], field.type, field.default.magnitude) 
                       for field in allowed_fields]
                     
     # Here we append the fields that cannot be initialised directly from the
     # Scenario dataclass.
-    derived_fields.append(("cCa0", float, None),
-                          ("cCaIni", float, None),
-                          ("cCO30"), float, None),
-                          ("cCO3Ini", float, None),
-                          ("DeepLimit", float, None),
-                          ("rhos0", float, None),
-                          ("Xstar", float, None),
-                          ("Tstar", float, None),
-                          ("b", float, None))   
+    derived_fields.extend([("cCa0", float, None),
+                           ("cCaIni", float, None),
+                           ("cCO30", float, None),
+                           ("cCO3Ini", float, None),
+                           ("DeepLimit", float, None),
+                           ("rhos0", float, None),
+                           ("rhos", float, None),
+                           ("Xstar", float, None),
+                           ("Tstar", float, None),
+                           ("m2", float, None),
+                           ("n2", float, None),
+                           ("DCa", float, None),
+                           ("PhiNR", float, None)])
 
     def post_init(self):
         # The Python parameters that need additional conversion
@@ -124,14 +133,20 @@ def map_Scenario():
         self.DeepLimit = self.ShallowLimit + self.Th
         self.rhos0 = self.rhoa * self.CA0 + self.rhoc * self.CC0 + \
                      self. rhot * (1 - (self.CA0 + self.CC0))
+        self.rhos = self.rhos0
         self.Xstar = self.D0Ca / self.sedimentationrate
         self.Tstar = self.Xstar / self.sedimentationrate
         self.b = self.b/1e4
+        self.m2 = self.m1
+        self.n2 = self.n1
+        self.DCa = self.D0Ca 
+        self.PhiNR = self.Phi0
+
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
                                        namespace={"__post_init__": post_init})
 
-    return asdict(derived_dataclass())
+    return derived_dataclass()
 
 @dataclass
 class Solver:
@@ -141,8 +156,11 @@ class Solver:
     '''
     dt: float     = 1.e-6
     eps: float    = 1.e-2
-    tmax: int     = Scenario().D0ca.magnitude/Scenario().S.magnitude**2
-    outt: int     =   1_000      # timesteps inbetween writing
+    # T* is more suitable as a default value 
+    # than the original value (100_000 years).
+    tmax: int     = Map_Scenario().Tstar 
+    # timesteps in between writing.
+    outt: int     =   1_000      
     outx: int     =  25_000
     N: int        = 200
 
