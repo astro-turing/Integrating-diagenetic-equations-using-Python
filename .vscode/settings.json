@@ -11,6 +11,9 @@
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
+    "python.linting.pylintArgs": [
+        "--disable=C0103"
+    ], 
     "python.testing.pytestArgs": [
         "tests"
     ],
