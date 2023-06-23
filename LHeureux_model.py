@@ -5,11 +5,11 @@ np.seterr(divide="raise", over="raise", under="raise", invalid="raise")
     
 class LMAHeureuxPorosityDiff(PDEBase):
 
-    def __init__(self, AragoniteSurface, CalciteSurface, CaSurface, 
-                CO3Surface, PorSurface, CA0, CC0, cCa0, cCO30, Phi0, 
-                sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, 
-                n2, b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, 
-                PhiInfty, PhiIni, DCa, DCO3, not_too_shallow, not_too_deep):
+    def __init__(self, AragoniteSurface, CalciteSurface, CaSurface,
+                CO3Surface, PorSurface, not_too_shallow, not_too_deep, CA0, CC0,
+                cCa0, cCO30, Phi0, sedimentationrate, Xstar, Tstar, k1, k2, k3,
+                k4, m1, m2, n1, n2, b, beta, rhos, rhow, rhos0, KA, KC, muA,
+                D0Ca, PhiNR, PhiInfty, PhiIni, DCa, DCO3):
 
         self.AragoniteSurface = AragoniteSurface
         self.CalciteSurface = CalciteSurface
