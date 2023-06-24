@@ -8,25 +8,26 @@ from pde import CartesianGrid, ScalarField, FileStorage
 from pde.grids.operators.cartesian import _make_derivative
 from LHeureux_model import LMAHeureuxPorosityDiff
 from marlpde.marlpde import Map_Scenario, Solver
+import inspect
 
-def integrate_equations():
+def integrate_equations(**kwargs):
     '''
     This function retrieves the parameters of the Scenario to be simulated and 
     the solution parameters for the integration. It then integrates the five
     partial differential equations form L'Heureux, stores and returns the 
     solution, to be used for plotting.
     '''
-    Scenario_parameters = Map_Scenario()
-    Xstar = Scenario_parameters.Xstar
-    Tstar = Scenario_parameters.Tstar
-    max_depth = Scenario_parameters.max_depth
-    ShallowLimit = Scenario_parameters.ShallowLimit
-    DeepLimit = Scenario_parameters.ShallowLimit
-    CAIni = Scenario_parameters.CAIni
-    CCIni = Scenario_parameters.CCIni
-    cCaIni = Scenario_parameters.cCaIni
-    cCO3Ini = Scenario_parameters.cCO3Ini
-    PhiIni = Scenario_parameters.PhiIni
+
+    Xstar = kwargs["Xstar"]
+    Tstar = kwargs["Tstar"]
+    max_depth = kwargs["max_depth"]
+    ShallowLimit = kwargs["ShallowLimit"]
+    DeepLimit = kwargs["DeepLimit"]
+    CAIni = kwargs["CAIni"]
+    CCIni = kwargs["CCIni"]
+    cCaIni = kwargs["cCaIni"]
+    cCO3Ini = kwargs["cCO3Ini"]
+    PhiIni = kwargs["PhiIni"]
 
     Solver_parameters = Solver()
     Number_of_depths = Solver_parameters.N
@@ -56,9 +57,16 @@ def integrate_equations():
     not_too_deep = ScalarField.from_expression(depths,
                    f"heaviside({DeepLimit/Xstar}-x, 0)")    
     
+    # Not all keys from kwargs are LMAHeureuxPorosityDiff arguments.
+    # Taken from https://stackoverflow.com/questions/334655/passing-a-\
+    # dictionary-to-a-function-as-keyword-parameters
+    filtered_kwargs = {k: v for k, v in kwargs.items() if k in [p.name for p in 
+                      inspect.signature(LMAHeureuxPorosityDiff).parameters.\
+                        values()]}
+
     eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface, 
                                 CO3Surface, PorSurface, not_too_shallow, 
-                                not_too_deep, **asdict(Scenario_parameters))             
+                                not_too_deep, **filtered_kwargs)             
     
     state = eq.get_state(AragoniteSurface, CalciteSurface, CaSurface, 
                          CO3Surface, PorSurface)
@@ -75,11 +83,11 @@ def integrate_equations():
     print()
     print(f"Meta-information about the solution : {info}")        
 
-    covered_time = Tstar * end_time
+    covered_time = Tstar * End_time
 
-    return sol, covered_time
+    return sol, covered_time, depths, Xstar
 
-def Plot_results(sol, covered_time):
+def Plot_results(sol, covered_time, depths, Xstar):
     '''
     Plot the five fields at the end of the integration interval as a function
     of depth.
@@ -100,5 +108,5 @@ def Plot_results(sol, covered_time):
     plt.show()
 
 if __name__ == '__main__':
-    solution, covered_time = integrate_equations()
-    Plot_results(solution, covered_time)
+    solution, covered_time, depths, Xstar = integrate_equations(**asdict(Map_Scenario()))
+    Plot_results(solution, covered_time, depths, Xstar)
