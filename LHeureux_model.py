@@ -2,7 +2,7 @@ import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
 from numba import njit
 np.seterr(divide="raise", over="raise", under="raise", invalid="raise")
-    
+
 class LMAHeureuxPorosityDiff(PDEBase):
 
     def __init__(self, AragoniteSurface, CalciteSurface, CaSurface,
