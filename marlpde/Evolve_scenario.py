@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 from dataclasses import asdict
 import inspect
-from marlpde.marlpde import Map_Scenario, Solver
+from parameters import Map_Scenario, Solver
 from LHeureux_model import LMAHeureuxPorosityDiff
 import matplotlib.pyplot as plt
 from pde import CartesianGrid, ScalarField, FileStorage
