@@ -108,5 +108,6 @@ def Plot_results(sol, covered_time, depths, Xstar):
     plt.show()
 
 if __name__ == '__main__':
-    solution, covered_time, depths, Xstar = integrate_equations(**asdict(Map_Scenario()))
+    solution, covered_time, depths, Xstar = \
+        integrate_equations(**asdict(Map_Scenario()))
     Plot_results(solution, covered_time, depths, Xstar)
