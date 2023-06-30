@@ -1,7 +1,7 @@
 from dataclasses import asdict, replace
 import h5py
 from numpy.testing import assert_allclose
-from marlpde.parameters import Map_Scenario
+from marlpde.parameters import Map_Scenario, Solver
 from marlpde.Evolve_scenario import integrate_equations
 
 def load_hdf5_data(path_to_ouput):
@@ -32,9 +32,12 @@ def test_integration_Scenario_A():
     
     Scenario_A_data = load_hdf5_data(path_to_ground_truth_Scenario_A)
 
+    # Concatenate the dict containing the Scenario parameters with the
+    # dict containing the solver parameters (such as required tolerance).
+    all_kwargs = asdict(Map_Scenario()) | asdict(Solver())
     # integrate_equations returns four variables, we only need the first one.
     solution, _, _, _ = \
-        integrate_equations(**asdict(Map_Scenario()))
+        integrate_equations(**all_kwargs)
      
     # Test the final distribution of all five fields over depths
     assert_allclose(solution.data, Scenario_A_data[-1, :, :],
@@ -56,9 +59,12 @@ def test_high_porosity_integration():
     high_porosity_parameters = \
         asdict(replace(Map_Scenario(), Phi0 = 0.8, PhiIni = 0.8))
 
+    # Concatenate the dict containing the Scenario parameters with the
+    # dict containing the solver parameters (such as required tolerance).
+    all_kwargs = high_porosity_parameters  | asdict(Solver())
     # integrate_equations returns four variables, we only need the first one.
     solution, _, _, _ = \
-        integrate_equations(**high_porosity_parameters)
+        integrate_equations(**all_kwargs)
      
     # Test the final distribution of all five fields over depths
     assert_allclose(solution.data, high_porosity_data[-1, :, :],
