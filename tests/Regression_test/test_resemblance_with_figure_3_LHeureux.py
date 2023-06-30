@@ -59,9 +59,12 @@ def test_high_porosity_integration():
     high_porosity_parameters = \
         asdict(replace(Map_Scenario(), Phi0 = 0.8, PhiIni = 0.8))
 
+    # Smaller initial time step needed for these high porosities.
+    # If not, we get a ZeroDivisionError from "wrapped_stepper".
+    Solver_parms = replace(Solver(), dt = 5e-7)
     # Concatenate the dict containing the Scenario parameters with the
     # dict containing the solver parameters (such as required tolerance).
-    all_kwargs = high_porosity_parameters  | asdict(Solver())
+    all_kwargs = high_porosity_parameters  | asdict(Solver_parms)
     # integrate_equations returns four variables, we only need the first one.
     solution, _, _, _ = \
         integrate_equations(**all_kwargs)
