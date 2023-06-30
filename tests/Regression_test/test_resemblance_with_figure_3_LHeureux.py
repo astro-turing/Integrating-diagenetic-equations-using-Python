@@ -1,8 +1,8 @@
-from Evolve_scenario import integrate_equations
-from marlpde.marlpde import Map_Scenario
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import h5py
 from numpy.testing import assert_allclose
+from marlpde.parameters import Map_Scenario
+from marlpde.Evolve_scenario import integrate_equations
 
 def load_hdf5_data(path_to_ouput):
     '''
@@ -28,11 +28,12 @@ def test_integration_Scenario_A():
     atol=0.01
 
     path_to_ground_truth_Scenario_A = \
-        '../data/LMAHeureuxPorosityDiff_Phi0_0.6_PhiIni_0.5.hdf5'         
+    'tests/Regression_test/data/LMAHeureuxPorosityDiff_Phi0_0.6_PhiIni_0.5.hdf5'
     
     Scenario_A_data = load_hdf5_data(path_to_ground_truth_Scenario_A)
 
-    solution, covered_time, depths, Xstar = \
+    # integrate_equations returns four variables, we only need the first one.
+    solution, _, _, _ = \
         integrate_equations(**asdict(Map_Scenario()))
      
     # Test the final distribution of all five fields over depths
@@ -48,14 +49,15 @@ def test_high_porosity_integration():
     atol=0.01
 
     path_to_ground_truth_high_porosities = \
-        '../data/LMAHeureuxPorosityDiff_Phi0_and_PhiIni_0.8.hdf5'         
+    'tests/Regression_test/data/LMAHeureuxPorosityDiff_Phi0_PhiIni_0.8.hdf5'
     
     high_porosity_data = load_hdf5_data(path_to_ground_truth_high_porosities)
 
     high_porosity_parameters = \
-        asdict(Map_Scenario()).update({"Phi0": 0.8, "PhiIni": 0.8})
+        asdict(replace(Map_Scenario(), Phi0 = 0.8, PhiIni = 0.8))
 
-    solution, covered_time, depths, Xstar = \
+    # integrate_equations returns four variables, we only need the first one.
+    solution, _, _, _ = \
         integrate_equations(**high_porosity_parameters)
      
     # Test the final distribution of all five fields over depths
