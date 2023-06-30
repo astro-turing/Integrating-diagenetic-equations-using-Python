@@ -107,6 +107,8 @@ def Plot_results(sol, covered_time, depths, Xstar):
     plt.show()
 
 if __name__ == '__main__':
+    # Concatenate the dict containing the Scenario parameters with the
+    # dict containing the solver parameters (such as required tolerance).
     all_kwargs = asdict(Map_Scenario()) | asdict(Solver())
     solution, covered_time, depths, Xstar = \
         integrate_equations(**all_kwargs)
