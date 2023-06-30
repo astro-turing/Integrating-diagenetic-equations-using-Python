@@ -4,11 +4,11 @@ from datetime import datetime
 import os
 from dataclasses import asdict
 import inspect
-from parameters import Map_Scenario, Solver
-from LHeureux_model import LMAHeureuxPorosityDiff
 import matplotlib.pyplot as plt
 from pde import CartesianGrid, ScalarField, FileStorage
 from pde.grids.operators.cartesian import _make_derivative
+from marlpde.parameters import Map_Scenario, Solver
+from marlpde.LHeureux_model import LMAHeureuxPorosityDiff
 
 def integrate_equations(**kwargs):
     '''
