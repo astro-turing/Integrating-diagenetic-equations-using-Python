@@ -29,11 +29,10 @@ def integrate_equations(**kwargs):
     cCO3Ini = kwargs["cCO3Ini"]
     PhiIni = kwargs["PhiIni"]
 
-    Solver_parameters = Solver()
-    Number_of_depths = Solver_parameters.N
+    Number_of_depths = kwargs["N"]
     # End_time is in units of Tstar.
-    End_time = Solver_parameters.tmax/Tstar
-    dt = Solver_parameters.dt
+    End_time = kwargs["tmax"]/Tstar
+    dt = kwargs["dt"]
 
     depths = CartesianGrid([[0, max_depth/Xstar]], [Number_of_depths], periodic=False)
     # We will be needing forward and backward differencing for
@@ -108,6 +107,7 @@ def Plot_results(sol, covered_time, depths, Xstar):
     plt.show()
 
 if __name__ == '__main__':
+    all_kwargs = asdict(Map_Scenario()) | asdict(Solver())
     solution, covered_time, depths, Xstar = \
-        integrate_equations(**asdict(Map_Scenario()))
+        integrate_equations(**all_kwargs)
     Plot_results(solution, covered_time, depths, Xstar)
