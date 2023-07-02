@@ -56,8 +56,10 @@ def test_high_porosity_integration():
     
     high_porosity_data = load_hdf5_data(path_to_ground_truth_high_porosities)
 
-    high_porosity_parameters = \
-        asdict(replace(Map_Scenario(), Phi0 = 0.8, PhiIni = 0.8))
+    # replace from dataclasses cannot be applied here, since b would be
+    # divided by 1e4 twice. So we will modify porosity values at the dict level.
+    high_porosity_parameters = {**asdict(Map_Scenario()), 
+                                "Phi0": 0.8, "PhiIni": 0.8}
 
     # Smaller initial time step needed for these high porosities.
     # If not, we get a ZeroDivisionError from "wrapped_stepper".
