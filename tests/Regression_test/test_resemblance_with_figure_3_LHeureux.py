@@ -58,8 +58,8 @@ def test_high_porosity_integration():
 
     # replace from dataclasses cannot be applied here, since b would be
     # divided by 1e4 twice. So we will modify porosity values at the dict level.
-    high_porosity_parameters = {**asdict(Map_Scenario()), 
-                                "Phi0": 0.8, "PhiIni": 0.8}
+    high_porosity_parameters = asdict(Map_Scenario()) |
+                                {"Phi0": 0.8, "PhiIni": 0.8}
 
     # Smaller initial time step needed for these high porosities.
     # If not, we get a ZeroDivisionError from "wrapped_stepper".
