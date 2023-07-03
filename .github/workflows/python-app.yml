@@ -37,9 +37,5 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        poetry shell
-        python3 -m pytest
-        exit
-        pipenv install
-        pipenv shell
+        poetry run python3 -m pytest
         pipenv run python3 -m pytest
