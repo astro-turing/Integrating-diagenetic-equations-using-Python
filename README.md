@@ -48,7 +48,7 @@ or
 pipenv shell
 python marlpde/Evolve_scenario.py
 ```
-Results in the form of an .hdf5 file will be stored in a subdirectory of a `Results` directory, which will be next to the folder containing the git clone.
+Results in the form of an .hdf5 file will be stored in a subdirectory of a `Results` directory, which will be in the root folder of the cloned repo.
 
 After two minutes you should see plots similar to figure 3e from [L'Heureux (2018)](https://www.hindawi.com/journals/geofluids/2018/4968315/).
 
