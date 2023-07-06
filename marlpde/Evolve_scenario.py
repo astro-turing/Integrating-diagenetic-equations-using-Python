@@ -103,7 +103,6 @@ def Plot_results(sol, covered_time, depths, Xstar):
     plt.xlabel("Depth (cm)")
     plt.ylabel("Compositions and concentrations (dimensionless)")
     plt.legend(loc='upper right')
-    plt.plot()
     plt.show()
 
 if __name__ == '__main__':
