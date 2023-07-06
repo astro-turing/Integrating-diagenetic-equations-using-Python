@@ -4,14 +4,14 @@ from numpy.testing import assert_allclose
 from marlpde.parameters import Map_Scenario, Solver
 from marlpde.Evolve_scenario import integrate_equations
 
-def load_hdf5_data(path_to_ouput):
+def load_hdf5_data(path_to_output):
     '''
     Load ground truth data which are stored as hdf5 files.     
     Return the five fields at all depths integrated up to T*.
     It turns out conversion to a Numpy array does not seem necessary for unit
     or regression testing.
     '''
-    hf = h5py.File(path_to_ouput, 'r')
+    hf = h5py.File(path_to_output, 'r')
     hf_data = hf.get("data")
     return hf_data
 
