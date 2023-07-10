@@ -6,10 +6,12 @@ AstroTOM is an OpenSSI 2021b project from the Netherlands eScience Center and Ut
 
 Dr. Emilia Jarochowska (UU) is the lead applicant of this project.
 
-After replacing central differencing for the gradients in the five diagenetic equations from l'Heureux (2018) by forward and backward differencing depending on the sign of U and W as a first step and a Fiadeiro-Veronis spatial difference scheme as a second step, it turns out that these equations can be integrated for more than 13.190 years (the full T*) with an implicit or explicit (in time) solver, but not with a simple Eulerian scheme. A Runge-Kutta solver, with an adaptive timestep will, however, suffice.
-Implicit (in time) solvers with use of Jacobians are available in the `Use_solve_ivp_without_py-pde_wrapper` branch.
+After replacing central differencing for the gradients in the five diagenetic equations 40-43 from [L'Heureux (2018)](https://www.hindawi.com/journals/geofluids/2018/4968315/) by forward and backward differencing depending on the sign of U and W as a first step and a Fiadeiro-Veronis spatial difference scheme as a second step, it turns out that these equations can be integrated for more than 13.190 years (the full T*) with an implicit or explicit (in time) solver, but not with a simple Eulerian scheme. A Runge-Kutta solver, with an adaptive timestep will, however, suffice.
+After correcting the value of b (5-->5e-4) it turned out that a stable integration is also possible without a Fiadeiro-Veronis scheme. The `main` branch makes use of a constant porosity diffusion coefficient.
 
-Wide use is made of the [py-pde](https://py-pde.readthedocs.io/en/latest/) package.
+Implicit (in time) solvers with use of Jacobians (in functional forms, so without numerical approximations) are available in the `Use_solve_ivp_without_py-pde_wrapper` branch.
+
+Wide use is made of the [py-pde](https://py-pde.readthedocs.io/en/latest/) package, especially in the `main` branch.
 
 ## Installing and using
 To run this code, you need `git` and `conda` or `pip` to install .
@@ -32,34 +34,47 @@ using either
 or
 `conda install -c conda-forge pipenv`.
 
-After `pipenv install` you should be able to execute
+Now you may be running into certain Python version requirements, i.e. the Pipfile requires a Python version that you do not have installed. For this conda can help, e.g.:
+`conda create -n py311 python=3.11 anaconda` to create a Conda Python 3.11 environment without activating it.
+
+Now you can use that freshly installed Python version and possibly any additionally installed libraries - using the `--site-packages` argument - by executing `pipenv install --python=$(conda run -n py311 which python) --site-packages` after which you should be able to execute
 
 ```
-pipenv run python ScenarioA.py
+pipenv run python marlpde/Evolve_scenario.py
 ```
 or
 
 ```
 pipenv shell
-python ScenarioA.py
+python marlpde/Evolve_scenario.py
 ```
-Results in the form of an .npz file will be stored in a subdirectory of a `Results` directory, which will be next to the folder containing the git clone.
+Results in the form of an .hdf5 file will be stored in a subdirectory of a `Results` directory, which will be in the root folder of the cloned repo.
 
-After two minutes you should see plots similar to figure 3e from l'Heureux (2018).
+After two minutes you should see plots similar to figure 3e from [L'Heureux (2018)](https://www.hindawi.com/journals/geofluids/2018/4968315/).
 
 ### Alternative: poetry
-If you prefer [`poetry`](https://python-poetry.org/) over `pipenv`, you may install all the dependencies and activate the environment using:
+If you prefer [`poetry`](https://python-poetry.org/) over `pipenv`, you may install all the dependencies and activate the environment using the command `poetry install`. Next, either:
 
 ```
-poetry install
+poetry run python marlpde/Evolve_scenario.py
+```
+or
+
+```
 poetry shell
+python marlpde/Evolve_scenario.py
 ```
 
-Then proceed with running as explained above.
+## Running tests
 
-## Future development
+From the root folder, i.e. the folder you enter after `cd Integrating-diagenetic-equations-using-Python`, either run
+```
+pipenv run python -m pytest
+```
+or
 
-To be done:
-- [ ] Read constants from a config file
-- [ ] Make plots as nice as those from `Use_solve_ivp_without_py-pde_wrapper` branch
+```
+poetry run python -m pytest
+```
+
 
