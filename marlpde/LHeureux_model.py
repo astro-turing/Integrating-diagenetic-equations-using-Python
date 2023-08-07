@@ -254,7 +254,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         dCa = self.dCa
         dCO3 = self.dCO3
         delta = self.delta
-        auxcon = self.auxcon        
         # The following three numbers are also needed for Fiadeiro-Veronis.
         dPhi_fixed = self.dPhi_fixed
         Peclet_min = self.Peclet_min
