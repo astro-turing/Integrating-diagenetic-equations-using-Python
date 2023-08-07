@@ -104,7 +104,26 @@ class LMAHeureuxPorosityDiff(PDEBase):
     @staticmethod
     @njit
     def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
-        # Assuming the arrays are 1D.
+        ''' Calculate sigma following formula 8.73 from Boudreau:
+        "Diagenetic Models and their implementation"
+
+        Parameters
+        ----------
+        Peclet: ndarray(dtype=float, ndim=1)
+            Array along depth of the Peclet numbers.
+        W-data: ndarray(dtype=float, ndim=1)
+            Array along depth of the velocity of the pore water 
+            (counted positive downwards)
+        Peclet_min: float
+            Lower limit for calculating 1/tanh(Peclet)
+        Peclet_max: float
+            Upper limit for calculating 1/tanh(Peclet)
+
+        Returns
+        -------
+        sigma: ndarray(dtype=float, ndim=1)
+            Array along depth with sigma values
+        '''
         sigma = np.empty(Peclet.size)
         for i in range(sigma.size):
             if np.abs(Peclet[i]) < Peclet_min:
