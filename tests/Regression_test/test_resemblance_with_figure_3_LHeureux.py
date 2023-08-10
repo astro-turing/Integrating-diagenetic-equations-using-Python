@@ -101,7 +101,7 @@ def test_cross_check_with_Matlab_output():
     Matlab_depths = np.linspace(0, 500, Matlab_output.shape[1])
 
     Scenario_parameters = asdict(Map_Scenario()) |\
-                                   {"Phi0": 0.5, "PhiIni": 0.5, \
+                                   {"Phi0": 0.5, "PhiIni": 0.5, "PhiNR": 0.5, \
                                     "k3": 0.01, "k4": 0.01}
     Xstar =  Scenario_parameters["Xstar"]
 
