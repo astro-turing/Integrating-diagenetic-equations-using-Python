@@ -93,7 +93,7 @@ def Plot_results(sol, covered_time, depths, Xstar):
     '''
     plt.title(f"Situation after {covered_time:.2f} years")
     # Marker size
-    ms = 3
+    ms = 5
     plotting_depths = ScalarField.from_expression(depths, "x").data * Xstar
     plt.plot(plotting_depths, sol.data[0], "v", ms = ms, label = "CA")
     plt.plot(plotting_depths, sol.data[1], "^", ms = ms, label = "CC")
