@@ -139,7 +139,7 @@ def Map_Scenario():
         self.b = self.b/1e4
         self.m2 = self.m1
         self.n2 = self.n1
-        self.DCa = self.D0Ca 
+        self.DCa = self.D0Ca
         self.PhiNR = self.PhiIni
 
                
