@@ -140,7 +140,7 @@ def Map_Scenario():
         self.m2 = self.m1
         self.n2 = self.n1
         self.DCa = self.D0Ca 
-        self.PhiNR = self.Phi0
+        self.PhiNR = self.PhiIni
 
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
@@ -156,11 +156,11 @@ class Solver:
     '''
     dt: float     = 1.e-6
     eps: float    = 1.e-2
-    # T* is more suitable as a default value 
+    # T* is more suitable as a default value
     # than the original value (100_000 years).
-    tmax: int     = Map_Scenario().Tstar 
+    tmax: int     = Map_Scenario().Tstar
     # timesteps in between writing.
-    outt: int     =   1_000      
+    outt: int     =   1_000
     outx: int     =  25_000
     N: int        = 200
 
