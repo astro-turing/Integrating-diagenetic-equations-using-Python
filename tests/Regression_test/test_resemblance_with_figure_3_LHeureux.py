@@ -36,7 +36,7 @@ def test_integration_Scenario_A():
 
     # Concatenate the dict containing the Scenario parameters with the
     # dict containing the solver parameters (such as required tolerance).
-    all_kwargs = asdict(Map_Scenario()) | asdict(Solver())
+    all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | {"PhiNR": 0.6}
     # integrate_equations returns four variables, we only need the first one.
     solution, _, _, _ = \
         integrate_equations(**all_kwargs)
