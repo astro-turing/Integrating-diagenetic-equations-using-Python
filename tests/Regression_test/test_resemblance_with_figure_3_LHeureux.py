@@ -36,6 +36,10 @@ def test_integration_Scenario_A():
 
     # Concatenate the dict containing the Scenario parameters with the
     # dict containing the solver parameters (such as required tolerance).
+    # The ground truth data were generated with PhiNR=Phi0. In this codebase 
+    # that was later changed to PhiNR=PhiIni, to comply with the L'Heureux 
+    # paper, so we need to reapply the old condition PhiNR=Phi0 to arrive at the
+    # ground truth data.
     all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | {"PhiNR": 0.6}
     # integrate_equations returns four variables, we only need the first one.
     solution, _, _, _ = \
