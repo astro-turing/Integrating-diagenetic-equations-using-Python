@@ -76,7 +76,7 @@ def integrate_equations(**kwargs):
     stored_results = store_folder + "LMAHeureuxPorosityDiff.hdf5"
     storage = FileStorage(stored_results)
     
-    sol, info = eq.solve(state, t_range=End_time, dt=dt, method="explicit", \
+    sol, info = eq.solve(state, t_range=End_time, dt=dt, solver="explicit", \
                    scheme = "rk", tracker=["progress", storage.tracker(0.01)], \
                    backend = "numba", ret_info = True, adaptive = True)
     print()
@@ -93,7 +93,7 @@ def Plot_results(sol, covered_time, depths, Xstar):
     '''
     plt.title(f"Situation after {covered_time:.2f} years")
     # Marker size
-    ms = 3
+    ms = 5
     plotting_depths = ScalarField.from_expression(depths, "x").data * Xstar
     plt.plot(plotting_depths, sol.data[0], "v", ms = ms, label = "CA")
     plt.plot(plotting_depths, sol.data[1], "^", ms = ms, label = "CC")

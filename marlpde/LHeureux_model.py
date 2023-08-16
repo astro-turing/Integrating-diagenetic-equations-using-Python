@@ -104,7 +104,26 @@ class LMAHeureuxPorosityDiff(PDEBase):
     @staticmethod
     @njit
     def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
-        # Assuming the arrays are 1D.
+        ''' Calculate sigma following formula 8.73 from Boudreau:
+        "Diagenetic Models and their implementation"
+
+        Parameters
+        ----------
+        Peclet: ndarray(dtype=float, ndim=1)
+            Array along depth of the Peclet numbers.
+        W-data: ndarray(dtype=float, ndim=1)
+            Array along depth of the velocity of the pore water 
+            (counted positive downwards)
+        Peclet_min: float
+            Lower limit for calculating 1/tanh(Peclet)
+        Peclet_max: float
+            Upper limit for calculating 1/tanh(Peclet)
+
+        Returns
+        -------
+        sigma: ndarray(dtype=float, ndim=1)
+            Array along depth with sigma values
+        '''
         sigma = np.empty(Peclet.size)
         for i in range(sigma.size):
             if np.abs(Peclet[i]) < Peclet_min:
@@ -140,10 +159,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         # Enforce no bottom boundary condition for CA and CC by using
         # backwards differencing only.
-        CA_grad_back = CA._apply_operator("grad_back", self.bc_CA)
+        CA_grad_back = CA.apply_operator("grad_back", self.bc_CA)
         CA_grad = CA_grad_back
 
-        CC_grad_back = CC._apply_operator("grad_back", self.bc_CC)
+        CC_grad_back = CC.apply_operator("grad_back", self.bc_CC)
         CC_grad = CC_grad_back
 
         W = self.presum - self.rhorat * Phi ** 2 * F
@@ -178,18 +197,18 @@ class LMAHeureuxPorosityDiff(PDEBase):
             Peclet_Phi.data, W.data, self.Peclet_min, self.Peclet_max)
         sigma_Phi = ScalarField(state.grid, sigma_Phi_data)
 
-        cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
-        cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)
+        cCa_grad_back = cCa.apply_operator("grad_back", self.bc_cCa)
+        cCa_grad_forw = cCa.apply_operator("grad_forw", self.bc_cCa)
         cCa_grad = 0.5 * ((1-sigma_cCa) * cCa_grad_forw +\
              (1+sigma_cCa) * cCa_grad_back)
 
-        cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
-        cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
+        cCO3_grad_back = cCO3.apply_operator("grad_back", self.bc_cCO3)
+        cCO3_grad_forw = cCO3.apply_operator("grad_forw", self.bc_cCO3)
         cCO3_grad = 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw +\
              (1+sigma_cCO3) * cCO3_grad_back)
 
-        Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
-        Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
+        Phi_grad_back = Phi.apply_operator("grad_back", self.bc_Phi)
+        Phi_grad_forw = Phi.apply_operator("grad_forw", self.bc_Phi)
         Phi_grad = 0.5 * ((1-sigma_Phi) * Phi_grad_forw +\
              (1+sigma_Phi) * Phi_grad_back)
 
@@ -235,7 +254,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         dCa = self.dCa
         dCO3 = self.dCO3
         delta = self.delta
-        auxcon = self.auxcon        
         # The following three numbers are also needed for Fiadeiro-Veronis.
         dPhi_fixed = self.dPhi_fixed
         Peclet_min = self.Peclet_min
