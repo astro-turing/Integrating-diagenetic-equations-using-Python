@@ -36,8 +36,8 @@ def test_integration_Scenario_A():
 
     # Concatenate the dict containing the Scenario parameters with the
     # dict containing the solver parameters (such as required tolerance).
-    # The ground truth data were generated with PhiNR=Phi0. In this codebase 
-    # that was later changed to PhiNR=PhiIni, to comply with the L'Heureux 
+    # The ground truth data were generated with PhiNR=Phi0. In this codebase
+    # that was later changed to PhiNR=PhiIni, to comply with the L'Heureux
     # paper, so we need to reapply the old condition PhiNR=Phi0 to arrive at the
     # ground truth data.
     all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | {"PhiNR": 0.6}
@@ -137,7 +137,7 @@ def test_cross_check_with_Matlab_output():
     # Compare the Python and Matlab output over all depths, except for close to the surface,
     # since we are dealing with a boundary layer near the surface - see chapter 7, page 56 of
     # Willem Hundsdorfer: "Numerical Solution of Advection-Diffusion-Reaction Equations".
-    # Consequently, both the Matlab and Python solutions for the concentrations and the 
+    # Consequently, both the Matlab and Python solutions for the concentrations and the
     # porosity jump a bit up and down near the surface, due to the high Peclet numbers.
     assert_allclose(solution.data[:, 2:], Matlab_output_interpolated[:, 2:], atol = atol)
     
