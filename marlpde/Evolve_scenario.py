@@ -74,7 +74,7 @@ def integrate_equations(**kwargs):
     store_folder = "../Results/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S" + "/")
     os.makedirs(store_folder)
     stored_results = store_folder + "LMAHeureuxPorosityDiff.hdf5"
-    storage = FileStorage(stored_results)
+    storage = FileStorage(stored_results, info=kwargs)
     
     sol, info = eq.solve(state, t_range=End_time, dt=dt, solver="explicit", \
                    scheme = "rk", tracker=["progress", storage.tracker(0.01)], \
