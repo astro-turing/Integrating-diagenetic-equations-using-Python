@@ -159,10 +159,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         # Enforce no bottom boundary condition for CA and CC by using
         # backwards differencing only.
-        CA_grad_back = CA._apply_operator("grad_back", self.bc_CA)
+        CA_grad_back = CA.apply_operator("grad_back", self.bc_CA)
         CA_grad = CA_grad_back
 
-        CC_grad_back = CC._apply_operator("grad_back", self.bc_CC)
+        CC_grad_back = CC.apply_operator("grad_back", self.bc_CC)
         CC_grad = CC_grad_back
 
         W = self.presum - self.rhorat * Phi ** 2 * F
@@ -197,18 +197,18 @@ class LMAHeureuxPorosityDiff(PDEBase):
             Peclet_Phi.data, W.data, self.Peclet_min, self.Peclet_max)
         sigma_Phi = ScalarField(state.grid, sigma_Phi_data)
 
-        cCa_grad_back = cCa._apply_operator("grad_back", self.bc_cCa)
-        cCa_grad_forw = cCa._apply_operator("grad_forw", self.bc_cCa)
+        cCa_grad_back = cCa.apply_operator("grad_back", self.bc_cCa)
+        cCa_grad_forw = cCa.apply_operator("grad_forw", self.bc_cCa)
         cCa_grad = 0.5 * ((1-sigma_cCa) * cCa_grad_forw +\
              (1+sigma_cCa) * cCa_grad_back)
 
-        cCO3_grad_back = cCO3._apply_operator("grad_back", self.bc_cCO3)
-        cCO3_grad_forw = cCO3._apply_operator("grad_forw", self.bc_cCO3)
+        cCO3_grad_back = cCO3.apply_operator("grad_back", self.bc_cCO3)
+        cCO3_grad_forw = cCO3.apply_operator("grad_forw", self.bc_cCO3)
         cCO3_grad = 0.5 * ((1-sigma_cCO3) * cCO3_grad_forw +\
              (1+sigma_cCO3) * cCO3_grad_back)
 
-        Phi_grad_back = Phi._apply_operator("grad_back", self.bc_Phi)
-        Phi_grad_forw = Phi._apply_operator("grad_forw", self.bc_Phi)
+        Phi_grad_back = Phi.apply_operator("grad_back", self.bc_Phi)
+        Phi_grad_forw = Phi.apply_operator("grad_forw", self.bc_Phi)
         Phi_grad = 0.5 * ((1-sigma_Phi) * Phi_grad_forw +\
              (1+sigma_Phi) * Phi_grad_back)
 
