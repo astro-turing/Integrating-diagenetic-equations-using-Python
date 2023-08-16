@@ -76,7 +76,7 @@ def integrate_equations(**kwargs):
     stored_results = store_folder + "LMAHeureuxPorosityDiff.hdf5"
     storage = FileStorage(stored_results)
     
-    sol, info = eq.solve(state, t_range=End_time, dt=dt, method="explicit", \
+    sol, info = eq.solve(state, t_range=End_time, dt=dt, solver="explicit", \
                    scheme = "rk", tracker=["progress", storage.tracker(0.01)], \
                    backend = "numba", ret_info = True, adaptive = True)
     print()
