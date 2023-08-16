@@ -52,7 +52,10 @@ def test_integration_Scenario_A():
 def test_high_porosity_integration():
     '''
     Test Scenario A evolution after T*, but this time with high initial and
-    boundary values of the porosity.   
+    boundary values of the porosity. The idea of adding this test is to check
+    the stability of the integration schemes a bit more, since high porosities
+    tend to derail the integrations. So in that sense this can be considered a 
+    more severe test than test_integration_Scenario_A.
     '''
     rtol=0.1
     atol=0.01
