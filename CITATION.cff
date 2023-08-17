@@ -1,0 +1,63 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Reactive transport model for limestone-marl sequences
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file, in addition to the paper by
+  L'Heureux 2018.
+type: software
+authors:
+  - given-names: Johan
+    family-names: Hidding
+    email: j.hidding@esciencecenter.nl
+    affiliation: Netherlands eScience Center
+    orcid: 'https://orcid.org/0000-0002-7550-1796'
+  - given-names: Hanno
+    family-names: Spreeuw
+    email: h.spreeuw@esciencecenter.nl
+    affiliation: The Netherlands eScience Center
+    orcid: 'https://orcid.org/0000-0002-5057-0322'
+  - given-names: Niklas
+    family-names: Hohmann
+    email: n.h.hohmann@uu.nl
+    affiliation: Utrecht University
+    orcid: 'https://orcid.org/0000-0003-1559-1838'
+  - given-names: Emilia
+    family-names: Jarochowska
+    email: e.b.jarochowska@uu.nl
+    affiliation: Utrecht University
+    orcid: 'https://orcid.org/0000-0001-8937-9405'
+identifiers:
+  - type: doi
+    value: 10.1155/2018/4968315
+    description: >-
+      Original paper by L'Heureux presenting the diagenetic
+      model and results.
+repository-code: >-
+  https://github.com/MindTheGap-ERC/reactive-transport-model-for-limestone-marl-sequences
+url: 'https://github.com/MindTheGap-ERC/'
+repository: >-
+  https://github.com/astro-turing/Integrating-diagenetic-equations-using-Python
+abstract: >-
+  This work was first triggered by research from Ivan
+  L'Heureux described in his 2018 paper
+  (https://doi.org/10.1155/2018/4968315). Figures and other
+  results from this paper have been derived from Fortran
+  code published here:
+  https://github.com/astro-turing/lheureux. Niklas Hohmann
+  tried to reproduce the figures based on the directions
+  given in the L'Heureux 2018 paper, by programming this
+  Matlab code: https://github.com/MindTheGap-ERC/LMA-Matlab.
+  The Matlab solver suffered from numerical instabilities,
+  which initiated the current work.
+keywords:
+  - Diagenetic models
+  - Numerical instabilities
+  - Fiadeiro-Veronis scheme for gradient computation
+  - Python
+  - Coupled partial differential equations
+  - Aragonite dissolution
+  - py-pde
+license: Apache-2.0
