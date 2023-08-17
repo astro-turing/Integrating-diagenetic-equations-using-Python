@@ -163,3 +163,10 @@ class Solver:
     outt: int     =   1_000
     outx: int     =  25_000
     N: int        = 200
+    solver: str   = "explicit"
+    scheme: str   = "rk"
+    tracker_interval: float = 0.01
+    backend: str = "numba"
+    retinfo: bool = True
+    adaptive: bool = True
+
