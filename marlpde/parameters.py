@@ -139,8 +139,8 @@ def Map_Scenario():
         self.b = self.b/1e4
         self.m2 = self.m1
         self.n2 = self.n1
-        self.DCa = self.D0Ca 
-        self.PhiNR = self.Phi0
+        self.DCa = self.D0Ca
+        self.PhiNR = self.PhiIni
 
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
@@ -156,34 +156,17 @@ class Solver:
     '''
     dt: float     = 1.e-6
     eps: float    = 1.e-2
-    # T* is more suitable as a default value 
+    # T* is more suitable as a default value
     # than the original value (100_000 years).
-    tmax: int     = Map_Scenario().Tstar 
+    tmax: int     = Map_Scenario().Tstar
     # timesteps in between writing.
-    outt: int     =   1_000      
+    outt: int     =   1_000
     outx: int     =  25_000
     N: int        = 200
+    solver: str   = "explicit"
+    scheme: str   = "rk"
+    tracker_interval: float = 0.01
+    backend: str = "numba"
+    retinfo: bool = True
+    adaptive: bool = True
 
-def cAthy(s: Scenario):
-    return ((1 - s.phi0) * s.b * 9.81 * u['m/s²'] * s.rhow).to('cm⁻¹')
-
-def write_input_cfg(path: Path, solver: Solver, scenario: Scenario):
-    cfg = configparser.ConfigParser()
-    cfg.optionxform = str
-    cfg["Solver"] = asdict(solver)
-
-    units = { k: v.units for (k, v) in asdict(Scenario()).items() }
-    magnitudes = { k: v.to(units[k]).magnitude
-                   for (k, v) in asdict(scenario).items() }
-    magnitudes["cAthy"] = cAthy(scenario).magnitude
-    cfg["Scenario"] = magnitudes
-    path.mkdir(parents=True, exist_ok=True)
-    with open(path / "input.cfg", "w") as f_cfg:
-        cfg.write(f_cfg)
-
-def run_marl_pde(path: Path, exe_dir: Path = Path(".")):
-    run(exe_dir / "marl-pde", cwd=path, check=True)
-
-def output_data(path: Path):
-    return h5.File(path / "output.h5", mode="r")
-# ~\~ end
