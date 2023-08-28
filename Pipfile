@@ -17,6 +17,8 @@ tqdm = "*"
 h5py = "*"
 pint = "*"
 ipython = "*"
+pandas = "*"
+tables = "*"
 
 [dev-packages]
 pylint = "*"
