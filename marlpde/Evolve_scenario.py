@@ -80,19 +80,31 @@ def integrate_equations(**kwargs):
     live_plots = LivePlotTracker(interval='0:05', title="Integration results",
                                  show=True, max_fps=1, \
                                  plot_args ={"ax_style": {"ylim": (0, 1.5)}})
+    if kwargs["track_U_at_bottom"]:
+        data_tracker = DataTracker(eq.track_U_at_bottom, \
+                               interval = kwargs["data_tracker_interval"])
+    else:
+        data_tracker = None
     
     sol, info = eq.solve(state, t_range=End_time, dt=dt, \
                          solver=kwargs["solver"], scheme=kwargs["scheme"],\
                          tracker=["progress", \
-                         storage.tracker(kwargs["tracker_interval"]),\
-                         live_plots], \
+                         storage.tracker(kwargs["progress_tracker_interval"]),\
+                         live_plots, data_tracker], \
                          backend=kwargs["backend"], ret_info=kwargs["retinfo"],\
                          adaptive=kwargs["adaptive"])
 
     print()
     print(f"Meta-information about the solution : {info}")        
 
-    return sol, Tstar * End_time, depths, Xstar, store_folder
+    covered_time_span = Tstar * info["controller"]["t_final"]
+
+    if kwargs["track_U_at_bottom"]:
+        data_tracker.dataframe.to_hdf(store_folder + 'U_at_bottom.h5',
+                                      f"number_of_years_evolved_is_{int(covered_time_span):d}",
+                                      format='table')
+
+    return sol, covered_time_span, depths, Xstar, store_folder
 
 def Plot_results(sol, covered_time, depths, Xstar, store_folder):
     '''
