@@ -173,8 +173,7 @@ class Solver:
 class Tracker:
     '''
     Initialises all the tracking parameters, such as tracker interval.
-    Also indicates the quantities to be tracked.
-    And the depth(s) at which they should be tracked.
+    Also indicates the quantities to be tracked, as boolean values.
     '''
     progress_tracker_interval: float = 0.01
     data_tracker_interval: float = 0.01
