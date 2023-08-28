@@ -176,6 +176,7 @@ class Tracker:
     Also indicates the quantities to be tracked, as boolean values.
     '''
     progress_tracker_interval: float = 0.01
+    plotting_interval: str = '0:05'
     data_tracker_interval: float = 0.01
     track_U_at_bottom: bool = True
 

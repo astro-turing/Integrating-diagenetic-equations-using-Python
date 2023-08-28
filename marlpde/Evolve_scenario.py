@@ -77,7 +77,8 @@ def integrate_equations(**kwargs):
     os.makedirs(store_folder)
     stored_results = store_folder + "LMAHeureuxPorosityDiff.hdf5"
     storage = FileStorage(stored_results, info=kwargs)
-    live_plots = LivePlotTracker(interval='0:05', title="Integration results",
+    live_plots = LivePlotTracker(interval=kwargs["plotting_interval"], \
+                                 title="Integration results",
                                  show=True, max_fps=1, \
                                  plot_args ={"ax_style": {"ylim": (0, 1.5)}})
     if kwargs["track_U_at_bottom"]:
