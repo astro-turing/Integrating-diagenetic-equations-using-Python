@@ -6,8 +6,9 @@ from dataclasses import asdict
 import inspect
 import matplotlib.pyplot as plt
 from pde import CartesianGrid, ScalarField, FileStorage, LivePlotTracker
+from pde import DataTracker
 from pde.grids.operators.cartesian import _make_derivative
-from parameters import Map_Scenario, Solver
+from parameters import Map_Scenario, Solver, Tracker
 from LHeureux_model import LMAHeureuxPorosityDiff
 
 def integrate_equations(**kwargs):
@@ -91,9 +92,7 @@ def integrate_equations(**kwargs):
     print()
     print(f"Meta-information about the solution : {info}")        
 
-    covered_time = Tstar * End_time
-
-    return sol, covered_time, depths, Xstar, store_folder
+    return sol, Tstar * End_time, depths, Xstar, store_folder
 
 def Plot_results(sol, covered_time, depths, Xstar, store_folder):
     '''
@@ -117,8 +116,9 @@ def Plot_results(sol, covered_time, depths, Xstar, store_folder):
 
 if __name__ == '__main__':
     # Concatenate the dict containing the Scenario parameters with the
-    # dict containing the solver parameters (such as required tolerance).
-    all_kwargs = asdict(Map_Scenario()) | asdict(Solver())
+    # dict containing the solver parameters (such as required tolerance) and
+    # with the dict containing the tracker parameters.
+    all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | asdict(Tracker())
     solution, covered_time, depths, Xstar, store_folder = \
         integrate_equations(**all_kwargs)
     Plot_results(solution, covered_time, depths, Xstar, store_folder)
