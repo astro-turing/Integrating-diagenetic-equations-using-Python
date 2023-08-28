@@ -176,7 +176,8 @@ class Tracker:
     Also indicates the quantities to be tracked.
     And the depth(s) at which they should be tracked.
     '''
-    tracker_interval: float = 0.01
-    track_U_at_bottom = False
+    progress_tracker_interval: float = 0.01
+    data_tracker_interval: float = 0.01
+    track_U_at_bottom: bool = True
 
 
