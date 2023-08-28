@@ -101,6 +101,16 @@ class LMAHeureuxPorosityDiff(PDEBase):
         return FieldCollection([AragoniteSurface, CalciteSurface, CaSurface, 
                                 CO3Surface, PorSurface])
 
+
+    def track_U_at_bottom(self, state, t):
+        # First, extract the porosity at the bottom of the system.
+        # The derived quantities will then also be at the bottom of the system.
+        Phi = state.data[4][-1]
+        F = 1 - np.exp(10 - 10 / Phi)
+        one_minus_Phi = 1 - Phi
+        U = self.presum + self.rhorat * Phi ** 3 * F /one_minus_Phi
+        return {"U at bottom": U}
+
     @staticmethod
     @njit
     def calculate_sigma(Peclet, W_data, Peclet_min, Peclet_max):
