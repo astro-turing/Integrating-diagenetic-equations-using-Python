@@ -39,7 +39,7 @@ Now you may be running into certain Python version requirements, i.e. the Pipfil
 
 `pytables` is a new dependency and that caused problems across various platforms. This can be fixed for pipenv installs on Linux and Mac OS by installing pytables through conda: `conda activate py311; conda install -c anaconda pytables`. Windows users are for now encouraged to use the `poetry install`, see below.
 
-Now you can use that freshly installed Python version and possibly any additionally installed libraries - using the `--site-packages` argument - by executing `pipenv install --python=$(conda run -n py311 which python) --site-packages --skip-lock`. The latter argument - `--skip-lock` - may be redundant, but if your previous `pipenv install` failed, `pipenv --rm` may be needed. 
+You can use that freshly installed Python version and possibly any additionally installed libraries - using the `--site-packages` argument - by executing `pipenv install --python=$(conda run -n py311 which python) --site-packages --skip-lock`. The latter argument - `--skip-lock` - may be redundant, but if your previous `pipenv install` failed, `pipenv --rm` may be needed. 
 
 After a succesful pipenv installation you should be able to execute
 
