@@ -37,7 +37,7 @@ or
 Now you may be running into certain Python version requirements, i.e. the Pipfile requires a Python version that you do not have installed. For this conda can help, e.g.:
 `conda create -n py311 python=3.11 anaconda` to create a Conda Python 3.11 environment. 
 
-`pytables` is a new dependency and that caused problems across various platforms. This can be fixed for pipenv installs on Linux and Mac OS by installing pytables through conda: `conda activate py311; conda install -c anaconda pytables`. Windows users are for now encouraged to use the `poetry install`, see below.
+`pytables` is a new dependency that caused problems across various platforms. This can be fixed for pipenv installs on Linux and Mac OS by installing pytables through conda: `conda activate py311; conda install -c anaconda pytables`. Windows users are for now encouraged to use the `poetry install`, see below.
 
 You can use that freshly installed Python version and possibly any additionally installed libraries - using the `--site-packages` argument - by executing `pipenv install --python=$(conda run -n py311 which python) --site-packages --skip-lock`. The latter argument - `--skip-lock` - may be redundant, but if your previous `pipenv install` failed, `pipenv --rm` may be needed. 
 
