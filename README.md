@@ -37,7 +37,7 @@ or
 Now you may be running into certain Python version requirements, i.e. the Pipfile requires a Python version that you do not have installed. For this conda can help, e.g.:
 `conda create -n py311 python=3.11 anaconda` to create a Conda Python 3.11 environment without activating it.
 
-Now you can use that freshly installed Python version and possibly any additionally installed libraries - using the `--site-packages` argument - by executing `pipenv install --python=$(conda run -n py311 which python) --site-packages` after which you should be able to execute
+Now you can use that freshly installed Python version and possibly any additionally installed libraries - using the `--site-packages` argument - by executing `pipenv install --python=$(conda run -n py311 which python) --site-packages --skip-lock` after which you should be able to execute
 
 ```
 pipenv run python marlpde/Evolve_scenario.py
