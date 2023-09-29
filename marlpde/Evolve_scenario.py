@@ -5,6 +5,7 @@ import os
 from dataclasses import asdict
 import inspect
 import matplotlib.pyplot as plt
+import h5py
 from pde import CartesianGrid, ScalarField, FileStorage, LivePlotTracker
 from pde import DataTracker
 from pde.grids.operators.cartesian import _make_derivative
@@ -106,9 +107,10 @@ def integrate_equations(**kwargs):
     covered_time_span = Tstar * info["controller"]["t_final"]
 
     if kwargs["track_U_at_bottom"]:
-        data_tracker.dataframe.to_hdf(store_folder + 'U_at_bottom.h5',
-                                      f"number_of_years_evolved_is_{int(covered_time_span):d}",
-                                      format='table')
+        with h5py.File(stored_results, 'a') as hf:
+            U_grp = hf.create_group("U")
+            U_grp.create_dataset("U_at_bottom", \
+                              data=data_tracker.dataframe.to_numpy())
 
     return sol, covered_time_span, depths, Xstar, store_folder
 
