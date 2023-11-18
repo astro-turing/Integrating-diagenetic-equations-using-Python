@@ -165,8 +165,20 @@ class Solver:
     N: int        = 200
     solver: str   = "explicit"
     scheme: str   = "rk"
-    tracker_interval: float = 0.01
     backend: str = "numba"
     retinfo: bool = True
     adaptive: bool = True
+
+@dataclass
+class Tracker:
+    '''
+    Initialises all the tracking parameters, such as tracker interval.
+    Also indicates the quantities to be tracked, as boolean values.
+    '''
+    progress_tracker_interval: float = 0.01
+    live_plotting: bool = False
+    plotting_interval: str = '0:05'
+    data_tracker_interval: float = 0.01
+    track_U_at_bottom: bool = False
+
 
