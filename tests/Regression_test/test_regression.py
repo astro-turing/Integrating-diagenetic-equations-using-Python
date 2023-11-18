@@ -3,7 +3,7 @@ import numpy as np
 import h5py
 from numpy.testing import assert_allclose
 from pde import CartesianGrid, ScalarField
-from marlpde.parameters import Map_Scenario, Solver
+from marlpde.parameters import Map_Scenario, Solver, Tracker
 from marlpde.Evolve_scenario import integrate_equations
 
 def load_hdf5_data(path_to_output, data="data"):
@@ -40,9 +40,10 @@ def test_integration_Scenario_A():
     # that was later changed to PhiNR=PhiIni, to comply with the L'Heureux
     # paper, so we need to reapply the old condition PhiNR=Phi0 to arrive at the
     # ground truth data.
-    all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | {"PhiNR": 0.6}
+    all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | \
+                 asdict(Tracker()) | {"PhiNR": 0.6}
     # integrate_equations returns four variables, we only need the first one.
-    solution, _, _, _ = \
+    solution, _, _, _, _ = \
         integrate_equations(**all_kwargs)
      
     # Test the final distribution of all five fields over depths
@@ -75,9 +76,10 @@ def test_high_porosity_integration():
     Solver_parms = replace(Solver(), dt = 5e-7)
     # Concatenate the dict containing the Scenario parameters with the
     # dict containing the solver parameters (such as required tolerance).
-    all_kwargs = Scenario_parameters  | asdict(Solver_parms)
+    all_kwargs = Scenario_parameters  | asdict(Solver_parms) | \
+                 asdict(Tracker())
     # integrate_equations returns four variables, we only need the first one.
-    solution, _, _, _ = integrate_equations(**all_kwargs)
+    solution, _, _, _, _ = integrate_equations(**all_kwargs)
      
     # Test the final distribution of all five fields over depths
     assert_allclose(solution.data, high_porosity_data[-1, :, :],
@@ -114,9 +116,9 @@ def test_cross_check_with_Matlab_output():
 
     max_depth = Scenario_parameters["max_depth"]  
 
-    all_kwargs = Scenario_parameters  | asdict(Solver())
+    all_kwargs = Scenario_parameters  | asdict(Solver()) | asdict(Tracker())
     
-    solution, _, _, _ = integrate_equations(**all_kwargs)
+    solution, _, _, _, _ = integrate_equations(**all_kwargs)
 
     Number_of_depths = all_kwargs["N"]
 
