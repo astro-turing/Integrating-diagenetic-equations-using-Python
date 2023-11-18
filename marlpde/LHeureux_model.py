@@ -108,8 +108,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         Phi = state.data[4][-1]
         F = 1 - np.exp(10 - 10 / Phi)
         one_minus_Phi = 1 - Phi
-        U = self.presum + self.rhorat * Phi ** 3 * F /one_minus_Phi
-        return {"U at bottom": U}
+        U_bottom = self.presum + self.rhorat * Phi ** 3 * F /one_minus_Phi
+        return {"U at bottom": U_bottom}
 
     @staticmethod
     @njit
