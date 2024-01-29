@@ -181,4 +181,12 @@ class Tracker:
     data_tracker_interval: float = 0.01
     track_U_at_bottom: bool = False
 
-
+def K(beta, Phi):
+    '''
+    Accommodates for need to modify the hydraulic conductivity outside the
+    module that implements the pdes: LHeureux_model.py. Previously, values 
+    of K, as defined in equation 15 from L'Heureux, were scattered between 
+    presum, rhorat and rhorat0. 
+    '''
+    F = 1 - np.exp(10 - 10 / Phi)
+    return beta * Phi**3 * F/(1 - Phi)**2

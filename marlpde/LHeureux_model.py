@@ -1,6 +1,7 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
 from numba import njit
+from parameters import K as Hydr_conduct
 np.seterr(divide="raise", over="raise", under="raise", invalid="raise")
 
 class LMAHeureuxPorosityDiff(PDEBase):
@@ -65,28 +66,32 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.delta = self.rhos / (self.muA * np.sqrt(self.KC))
         self.Da = self.k2 * self.Tstar
         self.lambda_ = self.k3 / self.k2
-        self.auxcon = self.beta / (self.D0Ca * self.b * self.g * self.rhow * \
+        # Remove beta from auxcon since we will be using
+        # a function from parameters that defines the hydraulic conductivity,
+        # so that function already includes beta.
+        self.auxcon = 1. / (self.D0Ca * self.b * self.g * self.rhow * \
                  (self.PhiNR - self.PhiInfty))
-        self.rhorat0 = (self.rhos0 / self.rhow - 1) * self.beta / \
-                  self.sedimentationrate
+        # Remove beta from rhorat0 since we will be using
+        # a function from parameters that defines the hydraulic conductivity,
+        # so that function already includes beta.
+        self.rhorat0 = (self.rhos0 / self.rhow - 1) / self.sedimentationrate
         self.rhorat = (self.rhos / self.rhow - 1) * self.beta / \
-                 self.sedimentationrate
-        self.presum = 1 - self.rhorat0 * self.Phi0 ** 3 * \
-                 (1 - np.exp(10 - 10 / self.Phi0)) / (1 - self.Phi0)     
+                       self.sedimentationrate
+        self.presum = 1 - self.rhorat0 * Hydr_conduct(self.beta, self.Phi0) * \
+                      (1 - self.Phi0)     
 
-        # Fiadeiro-Veronis differentiation involves a coth and a reciprocal, which can
-        # easily lead to FloatingPointError: overflow encountered in double_scalars.
-        # To avoid this, better revert to either backwards or central differencing 
-        # the Peclet number is very large or very small.
+        # Fiadeiro-Veronis differentiation involves a coth and a reciprocal, 
+        # which can easily lead to FloatingPointError: overflow encountered in 
+        # double_scalars. To avoid this, better revert to either backwards or 
+        # central differencing the Peclet number is very large or very small.
         self.Peclet_min = 1e-2
         self.Peclet_max = 1/self.Peclet_min
         # Need this number for Fiadeiro-Veronis differentiation.
         self.delta_x = self.AragoniteSurface.grid._axes_coords[0][1] - \
                        self.AragoniteSurface.grid._axes_coords[0][0]
         self.PhiIni = PhiIni
-        self.F_fixed = 1 - np.exp(10 - 10 / self.PhiIni)
-        self.dPhi_fixed = self.auxcon * self.F_fixed *\
-                          self.PhiIni ** 3 / (1 - self.PhiIni) 
+        self.dPhi_fixed = self.auxcon * Hydr_conduct(self.beta, self.PhiIni) * \
+                          (1 - self.PhiIni) 
 
     def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
