@@ -36,7 +36,8 @@ def integrate_equations(**kwargs):
     End_time = kwargs["tmax"]/Tstar
     dt = kwargs["dt"]
 
-    depths = CartesianGrid([[0, max_depth/Xstar]], [Number_of_depths], periodic=False)
+    depths = CartesianGrid([[0, max_depth/Xstar]], [Number_of_depths], 
+                           periodic=False)
     # We will be needing forward and backward differencing for
     # Fiadeiro-Veronis differentiation.
     depths.register_operator("grad_back", \
