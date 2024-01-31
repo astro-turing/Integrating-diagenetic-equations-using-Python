@@ -181,12 +181,24 @@ class Tracker:
     data_tracker_interval: float = 0.01
     track_U_at_bottom: bool = False
 
-def K(beta, Phi):
+def Hydr_conduct(beta, Phi, F):
     '''
     Accommodates for need to modify the hydraulic conductivity outside the
-    module that implements the pdes: LHeureux_model.py. Previously, values 
-    of K, as defined in equation 15 from L'Heureux, were scattered between 
-    presum, rhorat and rhorat0. 
+    module that implements the pdes, which is LHeureux_model.py. Previously, 
+    values of K, as defined in equation 15 from L'Heureux, were scattered 
+    between presum, rhorat and rhorat0. 
+    F is also needed for Deriv_last_term_eq_47, so not computed here.
     '''
-    F = 1 - np.exp(10 - 10 / Phi)
     return beta * Phi**3 * F/(1 - Phi)**2
+
+def Deriv_last_term_eq_47(beta, Phi, F):
+    '''
+    Since there is a spatial derivative of W in equation 43 from L'Heureux and
+    since W depends on the hydraulic conductivity, the user, when changing
+    Hydr_conduct above, must also accommodate for changes in the spatial 
+    derivative of the last term in equation 47 from L'Heureux. Here
+    we disregard the factor (rhos / rhow - 1) / sedimentationrate.
+    The gradient of the porosity is also considered implicit, so
+    not returned here and also accommodated for in LHeureux_model.py.
+    '''
+    return - beta * (2 * Phi * F + 10 * (F - 1))
