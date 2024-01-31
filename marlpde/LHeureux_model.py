@@ -89,6 +89,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # Need this number for Fiadeiro-Veronis differentiation.
         self.delta_x = self.AragoniteSurface.grid._axes_coords[0][1] - \
                        self.AragoniteSurface.grid._axes_coords[0][0]
+
+        # Accommodate for user defined hydraulic conductivity.
+        self.Hydr_conduct_jitted = njit(Hydr_conduct)
+        self.Deriv_last_term_eq_47_jitted = njit(Deriv_last_term_eq_47)
+
         self.PhiIni = PhiIni
         Fini = 1 - np.exp(10 - 10 / self.PhiIni)
         self.dPhi_fixed = self.auxcon * Hydr_conduct(self.beta, self.PhiIni, \
@@ -284,6 +289,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         Peclet_min = self.Peclet_min
         Peclet_max = self.Peclet_max
         delta_x = state.grid._axes_coords[0][1] - state.grid._axes_coords[0][0]
+        Hydr_conduct_jitted = self.Hydr_conduct_jitted
+        Deriv_last_term_eq_47_jitted = self.Deriv_last_term_eq_47_jitted
 
         # Enforce no bottom boundary condition for CA and CC by using
         # backwards differencing only.
@@ -298,8 +305,6 @@ class LMAHeureuxPorosityDiff(PDEBase):
         grad_back_Phi = state.grid.make_operator("grad_back", bc = self.bc_Phi)
         grad_forw_Phi = state.grid.make_operator("grad_forw", bc = self.bc_Phi)
         laplace_Phi = state.grid.make_operator("laplace", bc = self.bc_Phi)
-        Hydr_conduct_jitted = njit(Hydr_conduct)
-        Deriv_last_term_eq_47_jitted = njit(Deriv_last_term_eq_47)
 
         @njit
         def pde_rhs(state_data, t=0):
