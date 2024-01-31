@@ -1,7 +1,7 @@
 import numpy as np
 from pde import FieldCollection, PDEBase, ScalarField
 from numba import njit
-from parameters import K as Hydr_conduct
+from parameters import Hydr_conduct, Deriv_last_term_eq_47
 np.seterr(divide="raise", over="raise", under="raise", invalid="raise")
 
 class LMAHeureuxPorosityDiff(PDEBase):
@@ -75,10 +75,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # a function from parameters that defines the hydraulic conductivity,
         # so that function already includes beta.
         self.rhorat0 = (self.rhos0 / self.rhow - 1) / self.sedimentationrate
-        self.rhorat = (self.rhos / self.rhow - 1) * self.beta / \
-                       self.sedimentationrate
-        self.presum = 1 - self.rhorat0 * Hydr_conduct(self.beta, self.Phi0) * \
-                      (1 - self.Phi0)     
+        self.rhorat = (self.rhos / self.rhow - 1) / self.sedimentationrate
+        F0 = 1 - np.exp(10 - 10 / self.Phi0)
+        self.presum = 1 - self.rhorat0 * Hydr_conduct(self.beta, self.Phi0, F0)\
+                                       * (1 - self.Phi0)     
 
         # Fiadeiro-Veronis differentiation involves a coth and a reciprocal, 
         # which can easily lead to FloatingPointError: overflow encountered in 
@@ -90,8 +90,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         self.delta_x = self.AragoniteSurface.grid._axes_coords[0][1] - \
                        self.AragoniteSurface.grid._axes_coords[0][0]
         self.PhiIni = PhiIni
-        self.dPhi_fixed = self.auxcon * Hydr_conduct(self.beta, self.PhiIni) * \
-                          (1 - self.PhiIni) 
+        Fini = 1 - np.exp(10 - 10 / self.PhiIni)
+        self.dPhi_fixed = self.auxcon * Hydr_conduct(self.beta, self.PhiIni, \
+                          Fini) * (1 - self.PhiIni) 
 
     def get_state(self, AragoniteSurface, CalciteSurface, CaSurface, CO3Surface, 
                   PorSurface):
@@ -111,9 +112,10 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # First, extract the porosity at the bottom of the system.
         # The derived quantities will then also be at the bottom of the system.
         Phi = state.data[4][-1]
-        F = 1 - np.exp(10 - 10 / Phi)
         one_minus_Phi = 1 - Phi
-        U_bottom = self.presum + self.rhorat * Phi ** 3 * F /one_minus_Phi
+        F = 1 - np.exp(10 - 10 / Phi)
+        U_bottom = self.presum + self.rhorat * Hydr_conduct(self.beta, Phi, F)\
+                   * one_minus_Phi
         return {"U at bottom": U_bottom}
 
     @staticmethod
@@ -170,7 +172,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         F = 1 - np.exp(10 - 10 / Phi)
         one_minus_Phi = 1 - Phi
-        U = self.presum + self.rhorat * Phi ** 3 * F /one_minus_Phi
+        U = ScalarField(state.grid, self.presum + self.rhorat * \
+                        Hydr_conduct(self.beta, Phi.data, F.data) * \
+                            one_minus_Phi.data)
 
         # Enforce no bottom boundary condition for CA and CC by using
         # backwards differencing only.
@@ -180,7 +184,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         CC_grad_back = CC.apply_operator("grad_back", self.bc_CC)
         CC_grad = CC_grad_back
 
-        W = self.presum - self.rhorat * Phi ** 2 * F
+        W = ScalarField(state.grid, self.presum - self.rhorat * \
+                        Hydr_conduct(self.beta, Phi.data, F.data) * \
+                        one_minus_Phi.data**2 / Phi.data)
         
         dCA_dt = - U * CA_grad - self.Da * ((1 - CA) \
                  * coA + self.lambda_ * CA * coC)
@@ -232,15 +238,18 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
         common_helper = coA - self.lambda_ * coC
 
-        dcCa_dt = (cCa_grad * grad_Phi_denom + Phi_denom * cCa.laplace(self.bc_cCa)) \
-                  * self.dCa /Phi -W * cCa_grad \
-                  + self.Da * one_minus_Phi * (self.delta - cCa) * common_helper / Phi
+        dcCa_dt = (cCa_grad * grad_Phi_denom + Phi_denom * \
+                   cCa.laplace(self.bc_cCa)) * self.dCa /Phi -W * cCa_grad \
+                  + self.Da * one_minus_Phi * (self.delta - cCa) * \
+                    common_helper / Phi
 
-        dcCO3_dt = (cCO3_grad * grad_Phi_denom + Phi_denom * cCO3.laplace(self.bc_cCO3)) \
-                   * self.dCO3/Phi -W * cCO3_grad \
-                   + self.Da * one_minus_Phi * (self.delta - cCO3) * common_helper / Phi
+        dcCO3_dt = (cCO3_grad * grad_Phi_denom + Phi_denom * \
+                    cCO3.laplace(self.bc_cCO3)) * self.dCO3/Phi -W * cCO3_grad \
+                   + self.Da * one_minus_Phi * (self.delta - cCO3) * \
+                    common_helper / Phi
 
-        dW_dx = -self.rhorat * Phi_grad * (2 * Phi * F + 10 * (F - 1))
+        dW_dx = self.rhorat * Phi_grad * Deriv_last_term_eq_47(self.beta, \
+                                                               Phi.data, F.data)
 
         # This is closer to the original form of (43) from l' Heureux than
         # the Matlab implementation.
@@ -262,6 +271,7 @@ class LMAHeureuxPorosityDiff(PDEBase):
         nu2 = self.nu2
         not_too_deep = self.not_too_deep.data
         not_too_shallow = self.not_too_shallow.data
+        beta = self.beta
         presum = self.presum
         rhorat= self.rhorat
         lambda_ = self.lambda_
@@ -288,6 +298,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
         grad_back_Phi = state.grid.make_operator("grad_back", bc = self.bc_Phi)
         grad_forw_Phi = state.grid.make_operator("grad_forw", bc = self.bc_Phi)
         laplace_Phi = state.grid.make_operator("laplace", bc = self.bc_Phi)
+        Hydr_conduct_jitted = njit(Hydr_conduct)
+        Deriv_last_term_eq_47_jitted = njit(Deriv_last_term_eq_47)
 
         @njit
         def pde_rhs(state_data, t=0):
@@ -351,14 +363,17 @@ class LMAHeureuxPorosityDiff(PDEBase):
             for i in range(no_depths):
                 F[i] = 1 - np.exp(10 - 10 / Phi[i])
 
-                U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
+                U[i] = presum + rhorat * \
+                       Hydr_conduct_jitted(beta, Phi[i], F[i]) * (1 - Phi[i])
 
                 # Enforce no bottom boundary condition for CA and CC by using
                 # backwards differencing only.
                 CA_grad[i] = CA_grad_back[i]
                 CC_grad[i] = CC_grad_back[i]
 
-                W[i] = presum - rhorat * Phi[i] ** 2 * F[i]
+                W[i] = presum - rhorat * \
+                       Hydr_conduct_jitted(beta, Phi[i], F[i]) * \
+                       (1 - Phi[i])**2 / Phi[i]
 
                 # Implementing equation 6 from l'Heureux.
                 denominator[i] = 1 - 2 * np.log(Phi[i])
@@ -425,7 +440,8 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
                 common_helper3[i] = coA[i] - lambda_* coC[i]
                    
-                dW_dx[i] = -rhorat * Phi_grad[i] * (2 * Phi[i] * F[i] + 10 * (F[i] - 1))    
+                dW_dx[i] = rhorat * Phi_grad[i] * \
+                           Deriv_last_term_eq_47_jitted(beta, Phi[i], F[i])    
        
                 # This is dCA_dt
                 rate[0][i] = - U[i] * CA_grad[i] - Da * ((1 - CA[i]) \
