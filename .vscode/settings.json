@@ -9,14 +9,12 @@
         "**/*.pyc": true,
         "**/__pycache__": true
     },
-    "python.linting.pylintEnabled": true,
-    "python.linting.enabled": true,
-    "python.linting.pylintArgs": [
-        "--disable=C0103"
-    ], 
     "python.testing.pytestArgs": [
         "tests"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "pylint.args": [
+        "\"pylint.args\": [\"--disable=C0103\"]"
+    ]
 }
