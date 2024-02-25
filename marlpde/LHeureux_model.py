@@ -19,12 +19,9 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # There are no bottom boundary conditions for CA and CC in equations 
         # 35 from L'Heureux, but py-pde demands left and right boundary 
         # conditions. This means that '"curvature" : 0' is a dummy boundary
-        # condition. We will make sure that it does not leak into our 
-        # integration, by using only backward differencing for the spatial
-        # derivatives in the right-hand sides of the time derivative equations
-        # for CA and CC.
-        self.bc_CA = [{"value": CA0}, {"value" : 1e99}]
-        self.bc_CC = [{"value": CC0}, {"value": 1e99}]
+        # condition.
+        self.bc_CA = [{"value": CA0}, {"curvature" : 0}]
+        self.bc_CC = [{"value": CC0}, {"curvature": 0}]
         self.bc_cCa = [{"value": cCa0}, {"derivative": 0}]
         self.bc_cCO3 = [{"value": cCO30}, {"derivative": 0}]
         self.bc_Phi = [{"value": Phi0}, {"derivative": 0}]
@@ -167,13 +164,15 @@ class LMAHeureuxPorosityDiff(PDEBase):
         one_minus_Phi = 1 - Phi
         U = self.presum + self.rhorat * Phi ** 3 * F /one_minus_Phi
 
-        # Enforce no bottom boundary condition for CA and CC by using
-        # backwards differencing only.
         CA_grad_back = CA.apply_operator("grad_back", self.bc_CA)
-        CA_grad = CA_grad_back
+        CA_grad_forw = CA.apply_operator("grad_forw", self.bc_CA)
+        CA_grad = ScalarField(state.grid, np.where(U.data>0, CA_grad_back.data, \
+            CA_grad_forw.data))
 
         CC_grad_back = CC.apply_operator("grad_back", self.bc_CC)
-        CC_grad = CC_grad_back
+        CC_grad_forw = CC.apply_operator("grad_forw", self.bc_CC)    
+        CC_grad = ScalarField(state.grid, np.where(U.data>0, CC_grad_back.data, \
+            CC_grad_forw.data))
 
         W = self.presum - self.rhorat * Phi ** 2 * F
         
@@ -270,10 +269,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
         Peclet_max = self.Peclet_max
         delta_x = state.grid._axes_coords[0][1] - state.grid._axes_coords[0][0]
 
-        # Enforce no bottom boundary condition for CA and CC by using
-        # backwards differencing only.
+        # Restore backward and forward differencing for CA and CC
         grad_back_CA = state.grid.make_operator("grad_back", bc = self.bc_CA)
+        grad_forw_CA = state.grid.make_operator("grad_forw", bc = self.bc_CA)
         grad_back_CC = state.grid.make_operator("grad_back", bc = self.bc_CC)
+        grad_forw_CC = state.grid.make_operator("grad_forw", bc = self.bc_CC)
         grad_back_cCa = state.grid.make_operator("grad_back", bc = self.bc_cCa)
         grad_forw_cCa = state.grid.make_operator("grad_forw", bc = self.bc_cCa)
         laplace_cCa = state.grid.make_operator("laplace", bc = self.bc_cCa)
@@ -292,9 +292,11 @@ class LMAHeureuxPorosityDiff(PDEBase):
             # either one of them, based on the sign of U.
             CA = state_data[0]
             CA_grad_back = grad_back_CA(CA)
+            CA_grad_forw = grad_forw_CA(CA)
 
             CC = state_data[1]
             CC_grad_back = grad_back_CC(CC)
+            CC_grad_forw = grad_forw_CC(CC)
 
             cCa = state_data[2]
             cCa_grad_back = grad_back_cCa(cCa)
@@ -348,10 +350,12 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
                 U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
 
-                # Enforce no bottom boundary condition for CA and CC by using
-                # backwards differencing only.
+            if U[i] > 0:
                 CA_grad[i] = CA_grad_back[i]
                 CC_grad[i] = CC_grad_back[i]
+            else:
+                CA_grad[i] = CA_grad_forw[i]
+                CC_grad[i] = CC_grad_forw[i]
 
                 W[i] = presum - rhorat * Phi[i] ** 2 * F[i]
 
