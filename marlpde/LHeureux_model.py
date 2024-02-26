@@ -350,12 +350,12 @@ class LMAHeureuxPorosityDiff(PDEBase):
 
                 U[i] = presum + rhorat * Phi[i] ** 3 * F[i]/ (1 - Phi[i])
 
-            if U[i] > 0:
-                CA_grad[i] = CA_grad_back[i]
-                CC_grad[i] = CC_grad_back[i]
-            else:
-                CA_grad[i] = CA_grad_forw[i]
-                CC_grad[i] = CC_grad_forw[i]
+                if U[i] > 0:
+                    CA_grad[i] = CA_grad_back[i]
+                    CC_grad[i] = CC_grad_back[i]
+                else:
+                    CA_grad[i] = CA_grad_forw[i]
+                    CC_grad[i] = CC_grad_forw[i]
 
                 W[i] = presum - rhorat * Phi[i] ** 2 * F[i]
 
