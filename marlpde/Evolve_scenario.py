@@ -120,7 +120,7 @@ def Plot_results(sol, covered_time, depths, Xstar, store_folder):
     of depth.
     '''
     fig, ax = plt.subplots()
-    fig.suptitle(f"Situation after {covered_time:.2f} years")
+    fig.suptitle(f"Distributions after {covered_time:.2f} years")
     # Marker size
     ms = 5
     plotting_depths = ScalarField.from_expression(depths, "x").data * Xstar
