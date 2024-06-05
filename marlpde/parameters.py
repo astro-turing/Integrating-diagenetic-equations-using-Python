@@ -155,7 +155,6 @@ class Solver:
     So parameters like time interval, time step and tolerance.
     '''
     dt: float     = 1.e-6
-    eps: float    = 1.e-2
     # T* is more suitable as a default value
     # than the original value (100_000 years).
     tmax: float     = Map_Scenario().Tstar
