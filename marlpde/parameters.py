@@ -158,7 +158,7 @@ class Solver:
     eps: float    = 1.e-2
     # T* is more suitable as a default value
     # than the original value (100_000 years).
-    tmax: int     = Map_Scenario().Tstar
+    tmax: float     = Map_Scenario().Tstar
     # timesteps in between writing.
     outt: int     =   1_000
     outx: int     =  25_000
