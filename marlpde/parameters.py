@@ -160,8 +160,6 @@ class Solver:
     # than the original value (100_000 years).
     tmax: float     = Map_Scenario().Tstar
     # timesteps in between writing.
-    outt: int     =   1_000
-    outx: int     =  25_000
     N: int        = 200
     solver: str   = "explicit"
     scheme: str   = "rk"
