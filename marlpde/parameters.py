@@ -155,13 +155,10 @@ class Solver:
     So parameters like time interval, time step and tolerance.
     '''
     dt: float     = 1.e-6
-    eps: float    = 1.e-2
     # T* is more suitable as a default value
     # than the original value (100_000 years).
-    tmax: int     = Map_Scenario().Tstar
+    tmax: float     = Map_Scenario().Tstar
     # timesteps in between writing.
-    outt: int     =   1_000
-    outx: int     =  25_000
     N: int        = 200
     solver: str   = "explicit"
     scheme: str   = "rk"
