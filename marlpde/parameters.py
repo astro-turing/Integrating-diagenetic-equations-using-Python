@@ -39,7 +39,7 @@ class Scenario:
     S: quantity      = 0.1 * u.cm / u.a
     # cAthy: quantity  = 0.1 * u.dimensionless
     phiinf: quantity = 0.01 * u.dimensionless
-    phi0: quantity   = 0.6 * u.dimensionless
+    phi0: quantity   = 0.8 * u.dimensionless
     ca0: quantity    = 0.326e-3 * u.M
     co30: quantity   = 0.326e-3 * u.M
     ccal0: quantity  = 0.3 * u.dimensionless
@@ -49,7 +49,7 @@ class Scenario:
     xcemf: quantity  = 1000.0 * u.cm
     length: quantity = 500.0 * u.cm
     Th: quantity     = 100.0 * u.cm      # h_d   (height of dissolution zone)
-    phi00: quantity  = 0.5 * u.dimensionless
+    phi00: quantity  = 0.8 * u.dimensionless
     ca00: quantity   = 0.326e-3 * u.M    # sqrt(Kc) / 2
     co300: quantity  = 0.326e-3 * u.M    # sqrt(Kc) / 2
     ccal00: quantity = 0.3 * u.dimensionless
@@ -158,7 +158,7 @@ class Solver:
     eps: float    = 1.e-2
     # T* is more suitable as a default value
     # than the original value (100_000 years).
-    tmax: int     = Map_Scenario().Tstar
+    tmax: int     = 30 * Map_Scenario().Tstar
     # timesteps in between writing.
     outt: int     =   1_000
     outx: int     =  25_000
