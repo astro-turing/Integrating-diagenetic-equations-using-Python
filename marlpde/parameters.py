@@ -158,13 +158,10 @@ class Solver:
     eps: float    = 1.e-2
     # T* is more suitable as a default value
     # than the original value (100_000 years).
-    tmax: int     = 30 * Map_Scenario().Tstar
-    # timesteps in between writing.
-    outt: int     =   1_000
-    outx: int     =  25_000
+    tmax: int     = 250_000
     N: int        = 200
     solver: str   = "explicit"
-    scheme: str   = "rk"
+    scheme: str   = "euler"
     backend: str = "numba"
     retinfo: bool = True
     adaptive: bool = True
@@ -175,7 +172,7 @@ class Tracker:
     Initialises all the tracking parameters, such as tracker interval.
     Also indicates the quantities to be tracked, as boolean values.
     '''
-    progress_tracker_interval: float = 0.01
+    progress_tracker_interval: float = 1_000
     live_plotting: bool = False
     plotting_interval: str = '0:05'
     data_tracker_interval: float = 0.01
