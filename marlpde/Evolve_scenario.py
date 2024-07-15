@@ -5,6 +5,8 @@ import os
 from dataclasses import asdict
 import inspect
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use("TkAgg")
 import h5py
 from pde import CartesianGrid, ScalarField, FileStorage, LivePlotTracker
 from pde import DataTracker
@@ -95,7 +97,7 @@ def integrate_equations(**kwargs):
     
     sol, info = eq.solve(state, t_range=End_time, dt=dt, \
                          solver=kwargs["solver"], scheme=kwargs["scheme"],\
-                         tracker=["progress", \
+                         method="LSODA", tracker=["progress", \
                          storage.tracker(kwargs["progress_tracker_interval"]),\
                          live_plots, data_tracker], \
                          backend=kwargs["backend"], ret_info=kwargs["retinfo"],\
