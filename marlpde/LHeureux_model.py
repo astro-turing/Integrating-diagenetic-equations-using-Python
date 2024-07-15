@@ -164,13 +164,13 @@ class LMAHeureuxPorosityDiff(PDEBase):
         # Choose either forward or backward differencing for CA and CC
         # depending on the sign of U
 
-        CA_grad_back = CA._apply_operator("grad_back", self.bc_CA)
-        CA_grad_forw = CA._apply_operator("grad_forw", self.bc_CA)
+        CA_grad_back = CA.apply_operator("grad_back", self.bc_CA)
+        CA_grad_forw = CA.apply_operator("grad_forw", self.bc_CA)
         CA_grad = ScalarField(state.grid, np.where(U.data>0, CA_grad_back.data, \
             CA_grad_forw.data))
 
-        CC_grad_back = CC._apply_operator("grad_back", self.bc_CC)
-        CC_grad_forw = CC._apply_operator("grad_forw", self.bc_CC)
+        CC_grad_back = CC.apply_operator("grad_back", self.bc_CC)
+        CC_grad_forw = CC.apply_operator("grad_forw", self.bc_CC)
         CC_grad = ScalarField(state.grid, np.where(U.data>0, CC_grad_back.data, \
             CC_grad_forw.data))
 
