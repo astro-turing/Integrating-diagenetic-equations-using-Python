@@ -158,7 +158,7 @@ class Solver:
     eps: float    = 1.e-2
     # T* is more suitable as a default value
     # than the original value (100_000 years).
-    tmax: int     = 2.5e5
+    tmax: int     = 250_000
     N: int        = 200
     solver: str   = "scipy"
     scheme: str   = "euler"
