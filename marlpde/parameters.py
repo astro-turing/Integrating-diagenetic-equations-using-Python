@@ -39,7 +39,7 @@ class Scenario:
     S: quantity      = 0.1 * u.cm / u.a
     # cAthy: quantity  = 0.1 * u.dimensionless
     phiinf: quantity = 0.01 * u.dimensionless
-    phi0: quantity   = 0.8 * u.dimensionless
+    phi0: quantity   = 0.9 * u.dimensionless
     ca0: quantity    = 0.326e-3 * u.M
     co30: quantity   = 0.326e-3 * u.M
     ccal0: quantity  = 0.3 * u.dimensionless
@@ -47,7 +47,7 @@ class Scenario:
     xdis: quantity   = 50.0 * u.cm       # x_d   (start of dissolution zone)
     length: quantity = 1000.0 * u.cm
     Th: quantity     = 100.0 * u.cm      # h_d   (height of dissolution zone)
-    phi00: quantity  = 0.8 * u.dimensionless
+    phi00: quantity  = 0.9 * u.dimensionless
     ca00: quantity   = 0.326e-3 * u.M    # sqrt(Kc) / 2
     co300: quantity  = 0.326e-3 * u.M    # sqrt(Kc) / 2
     ccal00: quantity = 0.3 * u.dimensionless
