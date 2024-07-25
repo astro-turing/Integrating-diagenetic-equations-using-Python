@@ -150,6 +150,7 @@ class Solver:
     So parameters like time interval, time step and tolerance.
     '''
     dt: float     = 1.e-6
+    # tmax is the integration time in years.
     tmax: int     = Map_Scenario().Tstar
     N: int        = 200
     solver: str   = "scipy"
