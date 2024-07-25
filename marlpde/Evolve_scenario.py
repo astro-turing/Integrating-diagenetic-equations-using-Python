@@ -5,8 +5,6 @@ import os
 from dataclasses import asdict
 import inspect
 import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use("TkAgg")
 import h5py
 from pde import CartesianGrid, ScalarField, FileStorage, LivePlotTracker
 from pde import DataTracker
