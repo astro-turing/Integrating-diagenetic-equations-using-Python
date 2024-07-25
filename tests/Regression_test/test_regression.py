@@ -41,7 +41,7 @@ def test_integration_Scenario_A():
     # paper, so we need to reapply the old condition PhiNR=Phi0 to arrive at 
     # the ground truth data.
     all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | \
-                 asdict(Tracker()) | {"PhiNR": 0.6}
+                 asdict(Tracker()) | {"Phi0": 0.6, "PhiIni": 0.5, "PhiNR": 0.6}
     # integrate_equations returns four variables, we only need the first one.
     solution, _, _, _, _ = \
         integrate_equations(**all_kwargs)
