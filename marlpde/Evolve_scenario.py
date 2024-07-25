@@ -16,7 +16,7 @@ def integrate_equations(**kwargs):
     '''
     This function retrieves the parameters of the Scenario to be simulated and 
     the solution parameters for the integration. It then integrates the five
-    partial differential equations form L'Heureux, stores and returns the 
+    partial differential equations from L'Heureux, stores and returns the 
     solution, to be used for plotting.
     '''
 
