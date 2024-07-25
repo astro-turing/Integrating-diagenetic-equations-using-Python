@@ -1,6 +1,3 @@
-# ~\~ language=Python filename=marlpde/marlpde.py
-# ~\~ begin <<lit/python-interface.md|marlpde/marlpde.py>>[init]
-# import numpy
 import configparser
 from pathlib import Path
 from dataclasses import (dataclass, asdict, make_dataclass, fields)
@@ -153,9 +150,6 @@ class Solver:
     So parameters like time interval, time step and tolerance.
     '''
     dt: float     = 1.e-6
-    eps: float    = 1.e-2
-    # T* is more suitable as a default value
-    # than the original value (100_000 years).
     tmax: int     = 250_000
     N: int        = 200
     solver: str   = "scipy"
@@ -170,7 +164,7 @@ class Tracker:
     Initialises all the tracking parameters, such as tracker interval.
     Also indicates the quantities to be tracked, as boolean values.
     '''
-    progress_tracker_interval: float = 2.5e2 / Map_Scenario().Tstar
+    progress_tracker_interval: float = Solver().tmax/ 100 / Map_Scenario().Tstar
     live_plotting: bool = False
     plotting_interval: str = '0:05'
     data_tracker_interval: float = 0.01
