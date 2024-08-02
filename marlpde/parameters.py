@@ -154,10 +154,12 @@ class Solver:
     tmax: int     = Map_Scenario().Tstar
     N: int        = 200
     solver: str   = "scipy"
+    # Beware that "scheme" and "adaptive" will only be propagated if you have 
+    # chosen py-pde's native "explicit" solver above.
     scheme: str   = "euler"
+    adaptive: bool = True
     backend: str = "numba"
     retinfo: bool = True
-    adaptive: bool = True
 
 @dataclass
 class Tracker:
