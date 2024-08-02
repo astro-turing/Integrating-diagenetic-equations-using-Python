@@ -93,17 +93,27 @@ def integrate_equations(**kwargs):
     else:
         data_tracker = None
     
-    sol, info = eq.solve(state, t_range=End_time, dt=dt, \
-                         solver=kwargs["solver"], scheme=kwargs["scheme"],\
-                         method=kwargs["method"], lband=kwargs["lband"], \
-                         uband=kwargs["uband"], tracker=["progress", \
-                         storage.tracker(kwargs["progress_tracker_interval"]),\
-                         live_plots, data_tracker], \
-                         backend=kwargs["backend"], ret_info=kwargs["retinfo"],\
-                         adaptive=kwargs["adaptive"])
+    if kwargs["solver"]=='scipy':
+        sol, info = eq.solve(state, t_range=End_time, dt=dt, 
+                             solver='scipy', method=kwargs["method"], 
+                             lband=kwargs["lband"], uband=kwargs["uband"], 
+                             tracker=["progress", storage.tracker(
+                                 kwargs["progress_tracker_interval"]),
+                                 live_plots, data_tracker], 
+                             backend=kwargs["backend"], 
+                             ret_info=kwargs["retinfo"])
+    else:
+        sol, info = eq.solve(state, t_range=End_time, dt=dt, 
+                             solver=kwargs["solver"], scheme=kwargs["scheme"],
+                             tracker=["progress", storage.tracker(
+                                 kwargs["progress_tracker_interval"]),
+                                 live_plots, data_tracker], 
+                             backend=kwargs["backend"], 
+                             ret_info=kwargs["retinfo"],\
+                             adaptive=kwargs["adaptive"])
 
     print()
-    print(f"Meta-information about the solution : {info}")        
+    print(f"Meta-information about the solution : {info}\n")        
 
     covered_time_span = Tstar * info["controller"]["t_final"]
 
