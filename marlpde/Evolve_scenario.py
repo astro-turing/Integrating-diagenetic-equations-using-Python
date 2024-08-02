@@ -95,7 +95,8 @@ def integrate_equations(**kwargs):
     
     sol, info = eq.solve(state, t_range=End_time, dt=dt, \
                          solver=kwargs["solver"], scheme=kwargs["scheme"],\
-                         method="LSODA", tracker=["progress", \
+                         method=kwargs["method"], lband=kwargs["lband"], \
+                         uband=kwargs["uband"], tracker=["progress", \
                          storage.tracker(kwargs["progress_tracker_interval"]),\
                          live_plots, data_tracker], \
                          backend=kwargs["backend"], ret_info=kwargs["retinfo"],\

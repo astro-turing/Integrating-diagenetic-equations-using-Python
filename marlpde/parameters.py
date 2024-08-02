@@ -158,6 +158,14 @@ class Solver:
     # chosen py-pde's native "explicit" solver above.
     scheme: str   = "euler"
     adaptive: bool = True
+    # solve_ivp from scipy offers six methods. They can be set here.
+    method: str = "LSODA"
+    # Setting lband and uband for method="LSODA" leads to tremendous performance
+    # increase. See Scipy's solve_ivp documentation for background. Consider it
+    # equivalent to providing a sparsity matrix for the "Radau" and "BDF"
+    # implicit methods.
+    lband: int = 1
+    uband: int = 1
     backend: str = "numba"
     retinfo: bool = True
 
