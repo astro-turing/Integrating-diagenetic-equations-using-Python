@@ -52,8 +52,6 @@ python marlpde/Evolve_scenario.py
 ```
 Results in the form of an .hdf5 file will be stored in a subdirectory of a `Results` directory, which will be in the root folder of the cloned repo.
 
-After two minutes you should see plots similar to figure 3e from [L'Heureux (2018)](https://www.hindawi.com/journals/geofluids/2018/4968315/).
-
 ### Alternative: poetry
 If you prefer [`poetry`](https://python-poetry.org/) over `pipenv`, you may install all the dependencies and activate the environment using the command `poetry install`. Next, either:
 
