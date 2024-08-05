@@ -116,7 +116,8 @@ def Map_Scenario():
                            ("m2", float, None),
                            ("n2", float, None),
                            ("DCa", float, None),
-                           ("PhiNR", float, None)])
+                           ("PhiNR", float, None),
+                           ("N", int, None)])
 
     def post_init(self):
         # The Python parameters that need additional conversion
@@ -136,6 +137,7 @@ def Map_Scenario():
         self.n2 = self.n1
         self.DCa = self.D0Ca
         self.PhiNR = self.PhiIni
+        self.N = 200
 
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
@@ -143,20 +145,20 @@ def Map_Scenario():
 
     return derived_dataclass()
 
+
 @dataclass
-class Solver:
+class Solver():
     '''
     Initialises all the parameters for the solver.
     So parameters like time interval, time step and tolerance.
     '''
-    dt: float     = 1.e-6
-    # tmax is the integration time in years.
-    tmax: int     = Map_Scenario().Tstar
-    N: int        = 200
-    solver: str   = "scipy"
+    dt: float = 1.e-6
+    # t_range is the integration time in units of T*.
+    t_range: int = 1
+    solver: str = "scipy"
     # Beware that "scheme" and "adaptive" will only be propagated if you have 
     # chosen py-pde's native "explicit" solver above.
-    scheme: str   = "euler"
+    scheme: str = "euler"
     adaptive: bool = True
     # solve_ivp from scipy offers six methods. They can be set here.
     method: str = "LSODA"
@@ -167,7 +169,29 @@ class Solver:
     lband: int = 1
     uband: int = 1
     backend: str = "numba"
-    retinfo: bool = True
+    ret_info: bool = True
+
+    def __post_init__(self):
+        '''
+        Filter out solver settings that are mutually incompatible.
+        '''
+        if self.solver != "scipy":
+            try:
+                del self.__dataclass_fields__["method"]
+                del self.__dataclass_fields__["lband"]
+                del self.__dataclass_fields__["uband"]
+            except KeyError:
+                pass
+        else:
+            try:
+                del self.__dataclass_fields__["scheme"]
+                del self.__dataclass_fields__["adaptive"]
+                if self.method != "LSODA":
+                    del self.__dataclass_fields__["lband"]
+                    del self.__dataclass_fields__["uband"]
+            except KeyError:
+                pass
+
 
 @dataclass
 class Tracker:
@@ -175,10 +199,9 @@ class Tracker:
     Initialises all the tracking parameters, such as tracker interval.
     Also indicates the quantities to be tracked, as boolean values.
     '''
-    progress_tracker_interval: float = Solver().tmax/ 100 / Map_Scenario().Tstar
+    progress_tracker_interval: float = Solver().t_range/ 100 / \
+        Map_Scenario().Tstar
     live_plotting: bool = False
     plotting_interval: str = '0:05'
     data_tracker_interval: float = 0.01
     track_U_at_bottom: bool = False
-
-
