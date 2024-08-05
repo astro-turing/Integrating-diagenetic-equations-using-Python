@@ -12,29 +12,26 @@ from pde.grids.operators.cartesian import _make_derivative
 from parameters import Map_Scenario, Solver, Tracker
 from LHeureux_model import LMAHeureuxPorosityDiff
 
-def integrate_equations(**kwargs):
+def integrate_equations(solver_parms, tracker_parms, pde_parms):
     '''
     This function retrieves the parameters of the Scenario to be simulated and 
     the solution parameters for the integration. It then integrates the five
-    partial differential equations form L'Heureux, stores and returns the 
+    partial differential equations from L'Heureux, stores and returns the 
     solution, to be used for plotting.
     '''
 
-    Xstar = kwargs["Xstar"]
-    Tstar = kwargs["Tstar"]
-    max_depth = kwargs["max_depth"]
-    ShallowLimit = kwargs["ShallowLimit"]
-    DeepLimit = kwargs["DeepLimit"]
-    CAIni = kwargs["CAIni"]
-    CCIni = kwargs["CCIni"]
-    cCaIni = kwargs["cCaIni"]
-    cCO3Ini = kwargs["cCO3Ini"]
-    PhiIni = kwargs["PhiIni"]
+    Xstar = pde_parms["Xstar"]
+    Tstar = pde_parms["Tstar"]
+    max_depth = pde_parms["max_depth"]
+    ShallowLimit = pde_parms["ShallowLimit"]
+    DeepLimit = pde_parms["DeepLimit"]
+    CAIni = pde_parms["CAIni"]
+    CCIni = pde_parms["CCIni"]
+    cCaIni = pde_parms["cCaIni"]
+    cCO3Ini = pde_parms["cCO3Ini"]
+    PhiIni = pde_parms["PhiIni"]
 
-    Number_of_depths = kwargs["N"]
-    # End_time is in units of Tstar.
-    End_time = kwargs["tmax"]/Tstar
-    dt = kwargs["dt"]
+    Number_of_depths = pde_parms["N"]
 
     depths = CartesianGrid([[0, max_depth/Xstar]], [Number_of_depths], periodic=False)
     # We will be needing forward and backward differencing for
@@ -61,8 +58,8 @@ def integrate_equations(**kwargs):
     # Not all keys from kwargs are LMAHeureuxPorosityDiff arguments.
     # Taken from https://stackoverflow.com/questions/334655/passing-a-\
     # dictionary-to-a-function-as-keyword-parameters
-    filtered_kwargs = {k: v for k, v in kwargs.items() if k in [p.name for p in 
-                      inspect.signature(LMAHeureuxPorosityDiff).parameters.\
+    filtered_kwargs = {k: v for k, v in pde_parms.items() if k in [p.name for p
+                       in inspect.signature(LMAHeureuxPorosityDiff).parameters.\
                         values()]}
 
     eq = LMAHeureuxPorosityDiff(AragoniteSurface, CalciteSurface, CaSurface, 
@@ -77,36 +74,36 @@ def integrate_equations(**kwargs):
                    datetime.now().strftime("%d_%m_%Y_%H_%M_%S" + "/")
     os.makedirs(store_folder)
     stored_results = store_folder + "LMAHeureuxPorosityDiff.hdf5"
-    storage = FileStorage(stored_results, info=kwargs)
+    # Keep a record of all parameters.
+    storage_parms = solver_parms | tracker_parms | pde_parms
+    storage = FileStorage(stored_results, info=storage_parms)
 
-    if kwargs["live_plotting"]:
-        live_plots = LivePlotTracker(interval=kwargs["plotting_interval"], \
+    if tracker_parms["live_plotting"]:
+        live_plots = LivePlotTracker(interval=\
+                                     tracker_parms["plotting_interval"], \
                                      title="Integration results",
                                      show=True, max_fps=1, \
                                      plot_args ={"ax_style": {"ylim": (0, 1.5)}})
     else:
         live_plots = None
 
-    if kwargs["track_U_at_bottom"]:
+    if tracker_parms["track_U_at_bottom"]:
         data_tracker = DataTracker(eq.track_U_at_bottom, \
-                               interval = kwargs["data_tracker_interval"])
+                               interval = tracker_parms["data_tracker_interval"])
     else:
         data_tracker = None
-    
-    sol, info = eq.solve(state, t_range=End_time, dt=dt, \
-                         solver=kwargs["solver"], scheme=kwargs["scheme"],\
-                         tracker=["progress", \
-                         storage.tracker(kwargs["progress_tracker_interval"]),\
-                         live_plots, data_tracker], \
-                         backend=kwargs["backend"], ret_info=kwargs["retinfo"],\
-                         adaptive=kwargs["adaptive"])
+
+    sol, info = eq.solve(state, **solver_parms, tracker=["progress", \
+                         storage.tracker(\
+                             tracker_parms["progress_tracker_interval"]),\
+                         live_plots, data_tracker])
 
     print()
-    print(f"Meta-information about the solution : {info}")        
+    print(f"Meta-information about the solution : {info} \n")        
 
     covered_time_span = Tstar * info["controller"]["t_final"]
 
-    if kwargs["track_U_at_bottom"]:
+    if tracker_parms["track_U_at_bottom"]:
         with h5py.File(stored_results, 'a') as hf:
             U_grp = hf.create_group("U")
             U_grp.create_dataset("U_at_bottom", \
@@ -135,10 +132,9 @@ def Plot_results(sol, covered_time, depths, Xstar, store_folder):
     fig.savefig(store_folder + 'Final_distributions.pdf', bbox_inches="tight")
 
 if __name__ == '__main__':
-    # Concatenate the dict containing the Scenario parameters with the
-    # dict containing the solver parameters (such as required tolerance) and
-    # with the dict containing the tracker parameters.
-    all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | asdict(Tracker())
+    pde_parms = asdict(Map_Scenario()) 
+    solver_parms = asdict(Solver()) 
+    tracker_parms = asdict(Tracker())
     solution, covered_time, depths, Xstar, store_folder = \
-        integrate_equations(**all_kwargs)
+        integrate_equations(solver_parms, tracker_parms, pde_parms)
     Plot_results(solution, covered_time, depths, Xstar, store_folder)

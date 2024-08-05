@@ -38,13 +38,15 @@ def test_integration_Scenario_A():
     # dict containing the solver parameters (such as required tolerance).
     # The ground truth data were generated with PhiNR=Phi0. In this codebase
     # that was later changed to PhiNR=PhiIni, to comply with the L'Heureux
-    # paper, so we need to reapply the old condition PhiNR=Phi0 to arrive at the
-    # ground truth data.
-    all_kwargs = asdict(Map_Scenario()) | asdict(Solver()) | \
-                 asdict(Tracker()) | {"PhiNR": 0.6}
+    # paper, so we need to reapply the old condition PhiNR=Phi0 to arrive at 
+    # the ground truth data.
+    Scenario_parameters = asdict(Map_Scenario()) | \
+        {"Phi0": 0.6, "PhiIni": 0.5, "PhiNR": 0.6}
     # integrate_equations returns four variables, we only need the first one.
-    solution, _, _, _, _ = \
-        integrate_equations(**all_kwargs)
+    solution, _, _, _, _ = integrate_equations(asdict(Solver()), 
+                                               asdict(Tracker()),
+                                               Scenario_parameters)
+
      
     # Test the final distribution of all five fields over depths
     assert_allclose(solution.data, Scenario_A_data[-1, :, :],
@@ -76,11 +78,11 @@ def test_high_porosity_integration():
     Solver_parms = replace(Solver(), dt = 5e-7)
     # Concatenate the dict containing the Scenario parameters with the
     # dict containing the solver parameters (such as required tolerance).
-    all_kwargs = Scenario_parameters  | asdict(Solver_parms) | \
-                 asdict(Tracker())
     # integrate_equations returns four variables, we only need the first one.
-    solution, _, _, _, _ = integrate_equations(**all_kwargs)
-     
+    solution, _, _, _, _ = integrate_equations(asdict(Solver_parms), 
+                                               asdict(Tracker()),
+                                               Scenario_parameters)
+
     # Test the final distribution of all five fields over depths
     assert_allclose(solution.data, high_porosity_data[-1, :, :],
                     rtol=rtol, atol=atol)
@@ -116,11 +118,11 @@ def test_cross_check_with_Matlab_output():
 
     max_depth = Scenario_parameters["max_depth"]  
 
-    all_kwargs = Scenario_parameters  | asdict(Solver()) | asdict(Tracker())
-    
-    solution, _, _, _, _ = integrate_equations(**all_kwargs)
+    solution, _, _, _, _ = integrate_equations(asdict(Solver()), 
+                                               asdict(Tracker()),
+                                               Scenario_parameters)
 
-    Number_of_depths = all_kwargs["N"]
+    Number_of_depths = Scenario_parameters["N"]
 
     # It may seem a bit cumbersome to arrive at Python_plotting_depths in this manner,
     # but we are trying to mimick the way the grid has been setup in Evolve_scenario.py.

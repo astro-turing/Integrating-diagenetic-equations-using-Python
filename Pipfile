@@ -18,6 +18,7 @@ h5py = "*"
 pint = "*"
 ipython = "*"
 pandas = "*"
+jupyter = "*"
 
 [dev-packages]
 pylint = "*"

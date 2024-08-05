@@ -1,6 +1,3 @@
-# ~\~ language=Python filename=marlpde/marlpde.py
-# ~\~ begin <<lit/python-interface.md|marlpde/marlpde.py>>[init]
-# import numpy
 import configparser
 from pathlib import Path
 from dataclasses import (dataclass, asdict, make_dataclass, fields)
@@ -8,6 +5,7 @@ from subprocess import (run)
 import h5py as h5
 from pint import UnitRegistry
 import numpy as np
+from scipy.sparse import lil_matrix, dia_matrix, csr_matrix
 
 u = UnitRegistry()
 quantity = u.Quantity
@@ -39,17 +37,15 @@ class Scenario:
     S: quantity      = 0.1 * u.cm / u.a
     # cAthy: quantity  = 0.1 * u.dimensionless
     phiinf: quantity = 0.01 * u.dimensionless
-    phi0: quantity   = 0.6 * u.dimensionless
+    phi0: quantity   = 0.8 * u.dimensionless
     ca0: quantity    = 0.326e-3 * u.M
     co30: quantity   = 0.326e-3 * u.M
     ccal0: quantity  = 0.3 * u.dimensionless
     cara0: quantity  = 0.6 * u.dimensionless
     xdis: quantity   = 50.0 * u.cm       # x_d   (start of dissolution zone)
-    xcem: quantity   = -100.0 * u.cm
-    xcemf: quantity  = 1000.0 * u.cm
     length: quantity = 500.0 * u.cm
     Th: quantity     = 100.0 * u.cm      # h_d   (height of dissolution zone)
-    phi00: quantity  = 0.5 * u.dimensionless
+    phi00: quantity  = 0.8 * u.dimensionless
     ca00: quantity   = 0.326e-3 * u.M    # sqrt(Kc) / 2
     co300: quantity  = 0.326e-3 * u.M    # sqrt(Kc) / 2
     ccal00: quantity = 0.3 * u.dimensionless
@@ -121,7 +117,8 @@ def Map_Scenario():
                            ("m2", float, None),
                            ("n2", float, None),
                            ("DCa", float, None),
-                           ("PhiNR", float, None)])
+                           ("PhiNR", float, None),
+                           ("N", int, None)])
 
     def post_init(self):
         # The Python parameters that need additional conversion
@@ -141,6 +138,7 @@ def Map_Scenario():
         self.n2 = self.n1
         self.DCa = self.D0Ca
         self.PhiNR = self.PhiIni
+        self.N = 200
 
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
@@ -148,23 +146,103 @@ def Map_Scenario():
 
     return derived_dataclass()
 
+def jacobian_sparsity():
+    '''
+    It turns out the the Jacobian sparsity matrix, as provided by
+    previous versions of this function was too strict. The diagonals
+    had a width of 1, this implicitly assumes no dependencies of the
+    Jacobian elements on fields at adjacent depths. A run with such
+    a Jacobian sparsity matrix took a lot of compute power and time and
+    ultimately halted without covering a single time step! A debugging 
+    session with breakpoints inside solve_ivp showed that the Jacobian 
+    matrix computed by `solve_ivp` (when neither the Jacobian nor the 
+    Jacobian sparsity matrix was provided) has non-zero elements not 
+    only on the diagonals but also on adjacent positions along the 
+    diagonals. This was confirmed by ChatGPT:
+    "It is indeed common for the Jacobian matrix of coupled partial 
+    differential equations (PDEs), such as advection-diffusion equations, 
+    to have non-zero elements beyond the main diagonal. This phenomenon, 
+    where adjacent elements in the Jacobian are non-zero, is often due 
+    to the spatial discretization of the differential equations."
+    Likewise computing a functional Jacobian is only feasible for the
+    diagonals, for positions near the diagonals it is very hard.
+
+    Here we will choose diagonals of width 3.
+    '''
+
+    no_depths = Map_Scenario().N
+    # Number of fields = 5, i.e. calcite, aragonite, concentrations of
+    # calcium and carbonate ions and the porosity.
+    no_fields = 5
+    n = no_fields * no_depths
+    
+    diagonals = np.ones((3 * (2 * no_fields - 1), n))
+
+    # Construct the offsets.
+    offsets = ()
+    for offset in range(-n + no_depths, n - no_depths + 1, no_depths): 
+        offsets = offsets + ((offset -1, offset, offset + 1),)
+    # Turn offsets into a single tuple instead of a tuple of tuples.
+    offsets = sum(offsets, ())
+    # Check that we have as many offsets as diagonals:
+    try: 
+        assert len(offsets) == diagonals.shape[0]
+    except AssertionError as e:
+        print('Setup of diagonals incorrect.')
+    # Construct the sparse matrix. 
+    raw_matrix = lil_matrix(dia_matrix((diagonals, offsets), shape=(n, n))) 
+    # Set the Jacobian elements to zero that correspond with the derivatives
+    # of the rhs of equations 40 and 41 wrt phi.
+    raw_matrix[:2 * no_depths, 4 * no_depths:] = 0
+
+    return csr_matrix(raw_matrix)
+
 @dataclass
-class Solver:
+class Solver():
     '''
     Initialises all the parameters for the solver.
     So parameters like time interval, time step and tolerance.
     '''
-    dt: float     = 1.e-6
-    # T* is more suitable as a default value
-    # than the original value (100_000 years).
-    tmax: float     = Map_Scenario().Tstar
-    # timesteps in between writing.
-    N: int        = 200
-    solver: str   = "explicit"
-    scheme: str   = "rk"
-    backend: str = "numba"
-    retinfo: bool = True
+    dt: float = 1.e-6
+    # t_range is the integration time in units of T*.
+    t_range: int = 1
+    solver: str = "scipy"
+    # Beware that "scheme" and "adaptive" will only be propagated if you have 
+    # chosen py-pde's native "explicit" solver above.
+    scheme: str = "euler"
     adaptive: bool = True
+    # solve_ivp from scipy offers six methods. They can be set here.
+    method: str = "LSODA"
+    # Setting lband and uband for method="LSODA" leads to tremendous performance
+    # increase. See Scipy's solve_ivp documentation for background. Consider it
+    # equivalent to providing a sparsity matrix for the "Radau" and "BDF"
+    # implicit methods.
+    lband: int = 1
+    uband: int = 1
+    backend: str = "numba"
+    ret_info: bool = True
+
+    def __post_init__(self):
+        '''
+        Filter out solver settings that are mutually incompatible.
+        '''
+        if self.solver != "scipy":
+            try:
+                del self.__dataclass_fields__["method"]
+                del self.__dataclass_fields__["lband"]
+                del self.__dataclass_fields__["uband"]
+            except KeyError:
+                pass
+        else:
+            try:
+                del self.__dataclass_fields__["scheme"]
+                del self.__dataclass_fields__["adaptive"]
+                if self.method != "LSODA":
+                    del self.__dataclass_fields__["lband"]
+                    del self.__dataclass_fields__["uband"]
+            except KeyError:
+                pass
+
 
 @dataclass
 class Tracker:
@@ -172,10 +250,9 @@ class Tracker:
     Initialises all the tracking parameters, such as tracker interval.
     Also indicates the quantities to be tracked, as boolean values.
     '''
-    progress_tracker_interval: float = 0.01
+    progress_tracker_interval: float = Solver().t_range/ 100 / \
+        Map_Scenario().Tstar
     live_plotting: bool = False
     plotting_interval: str = '0:05'
     data_tracker_interval: float = 0.01
     track_U_at_bottom: bool = False
-
-
