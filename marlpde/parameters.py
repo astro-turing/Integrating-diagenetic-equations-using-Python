@@ -5,6 +5,7 @@ from subprocess import (run)
 import h5py as h5
 from pint import UnitRegistry
 import numpy as np
+from scipy.sparse import lil_matrix, dia_matrix, csr_matrix
 
 u = UnitRegistry()
 quantity = u.Quantity
@@ -145,6 +146,56 @@ def Map_Scenario():
 
     return derived_dataclass()
 
+def jacobian_sparsity():
+    '''
+    It turns out the the Jacobian sparsity matrix, as provided by
+    previous versions of this function was too strict. The diagonals
+    had a width of 1, this implicitly assumes no dependencies of the
+    Jacobian elements on fields at adjacent depths. A run with such
+    a Jacobian sparsity matrix took a lot of compute power and time and
+    ultimately halted without covering a single time step! A debugging 
+    session with breakpoints inside solve_ivp showed that the Jacobian 
+    matrix computed by `solve_ivp` (when neither the Jacobian nor the 
+    Jacobian sparsity matrix was provided) has non-zero elements not 
+    only on the diagonals but also on adjacent positions along the 
+    diagonals. This was confirmed by ChatGPT:
+    "It is indeed common for the Jacobian matrix of coupled partial 
+    differential equations (PDEs), such as advection-diffusion equations, 
+    to have non-zero elements beyond the main diagonal. This phenomenon, 
+    where adjacent elements in the Jacobian are non-zero, is often due 
+    to the spatial discretization of the differential equations."
+    Likewise computing a functional Jacobian is only feasible for the
+    diagonals, for positions near the diagonals it is very hard.
+
+    Here we will choose diagonals of width 3.
+    '''
+
+    no_depths = Map_Scenario().N
+    # Number of fields = 5, i.e. calcite, aragonite, concentrations of
+    # calcium and carbonate ions and the porosity.
+    no_fields = 5
+    n = no_fields * no_depths
+    
+    diagonals = np.ones((3 * (2 * no_fields - 1), n))
+
+    # Construct the offsets.
+    offsets = ()
+    for offset in range(-n + no_depths, n - no_depths + 1, no_depths): 
+        offsets = offsets + ((offset -1, offset, offset + 1),)
+    # Turn offsets into a single tuple instead of a tuple of tuples.
+    offsets = sum(offsets, ())
+    # Check that we have as many offsets as diagonals:
+    try: 
+        assert len(offsets) == diagonals.shape[0]
+    except AssertionError as e:
+        print('Setup of diagonals incorrect.')
+    # Construct the sparse matrix. 
+    raw_matrix = lil_matrix(dia_matrix((diagonals, offsets), shape=(n, n))) 
+    # Set the Jacobian elements to zero that correspond with the derivatives
+    # of the rhs of equations 40 and 41 wrt phi.
+    raw_matrix[:2 * no_depths, 4 * no_depths:] = 0
+
+    return csr_matrix(raw_matrix)
 
 @dataclass
 class Solver():
