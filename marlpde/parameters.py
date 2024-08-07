@@ -133,7 +133,7 @@ def Map_Scenario():
         self.rhos = self.rhos0
         self.Xstar = self.D0Ca / self.sedimentationrate
         self.Tstar = self.Xstar / self.sedimentationrate
-        self.b = self.b/1e4
+        self.b = (self.b/1e4) *0.8**3/(0.8*3)
         self.m2 = self.m1
         self.n2 = self.n1
         self.DCa = self.D0Ca
@@ -205,7 +205,7 @@ class Solver():
     '''
     dt: float = 1.e-6
     # t_range is the integration time in units of T*.
-    t_range: int = 1
+    t_range: int = 5e3
     solver: str = "scipy"
     # Beware that "scheme" and "adaptive" will only be propagated if you have 
     # chosen py-pde's native "explicit" solver above.
@@ -250,8 +250,7 @@ class Tracker:
     Initialises all the tracking parameters, such as tracker interval.
     Also indicates the quantities to be tracked, as boolean values.
     '''
-    progress_tracker_interval: float = Solver().t_range/ 100 / \
-        Map_Scenario().Tstar
+    progress_tracker_interval: float = Solver().t_range/ 1_000
     live_plotting: bool = False
     plotting_interval: str = '0:05'
     data_tracker_interval: float = 0.01
