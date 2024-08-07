@@ -133,7 +133,7 @@ def Map_Scenario():
         self.rhos = self.rhos0
         self.Xstar = self.D0Ca / self.sedimentationrate
         self.Tstar = self.Xstar / self.sedimentationrate
-        self.b = (self.b/1e4) *0.8**3/(0.8*3)
+        self.b = self.b/1e4
         self.m2 = self.m1
         self.n2 = self.n1
         self.DCa = self.D0Ca
@@ -205,7 +205,7 @@ class Solver():
     '''
     dt: float = 1.e-6
     # t_range is the integration time in units of T*.
-    t_range: int = 5e3
+    t_range: int = 1
     solver: str = "scipy"
     # Beware that "scheme" and "adaptive" will only be propagated if you have 
     # chosen py-pde's native "explicit" solver above.
