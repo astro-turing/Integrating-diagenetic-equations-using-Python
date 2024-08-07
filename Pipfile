@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-smop = "*"
 numpy = "*"
 ply = "*"
 networkx = "*"
@@ -18,7 +17,6 @@ h5py = "*"
 pint = "*"
 ipython = "*"
 pandas = "*"
-jupyter = "*"
 
 [dev-packages]
 pylint = "*"
