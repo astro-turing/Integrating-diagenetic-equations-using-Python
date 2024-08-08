@@ -37,7 +37,7 @@ class Scenario:
     S: quantity      = 0.1 * u.cm / u.a
     # cAthy: quantity  = 0.1 * u.dimensionless
     phiinf: quantity = 0.01 * u.dimensionless
-    phi0: quantity   = 0.6 * u.dimensionless
+    phi0: quantity   = 0.8 * u.dimensionless
     ca0: quantity    = 0.326e-3 * u.M
     co30: quantity   = 0.326e-3 * u.M
     ccal0: quantity  = 0.3 * u.dimensionless
@@ -45,7 +45,7 @@ class Scenario:
     xdis: quantity   = 50.0 * u.cm       # x_d   (start of dissolution zone)
     length: quantity = 500.0 * u.cm
     Th: quantity     = 100.0 * u.cm      # h_d   (height of dissolution zone)
-    phi00: quantity  = 0.5 * u.dimensionless
+    phi00: quantity  = 0.8 * u.dimensionless
     ca00: quantity   = 0.326e-3 * u.M    # sqrt(Kc) / 2
     co300: quantity  = 0.326e-3 * u.M    # sqrt(Kc) / 2
     ccal00: quantity = 0.3 * u.dimensionless
@@ -205,7 +205,7 @@ class Solver():
     '''
     dt: float = 1.e-6
     # t_range is the integration time in units of T*.
-    t_range: int = 1
+    t_range: int = 30
     solver: str = "scipy"
     # Beware that "scheme" and "adaptive" will only be propagated if you have 
     # chosen py-pde's native "explicit" solver above.
