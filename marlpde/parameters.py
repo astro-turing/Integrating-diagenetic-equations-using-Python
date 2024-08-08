@@ -206,7 +206,7 @@ class Solver():
     dt: float = 1.e-6
     # t_range is the integration time in units of T*.
     t_range: int = 1
-    solver: str = "explicit"
+    solver: str = "scipy"
     # Beware that "scheme" and "adaptive" will only be propagated if you have 
     # chosen py-pde's native "explicit" solver above.
     scheme: str = "euler"
