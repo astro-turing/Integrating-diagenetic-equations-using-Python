@@ -133,7 +133,7 @@ def Map_Scenario():
         self.rhos = self.rhos0
         self.Xstar = self.D0Ca / self.sedimentationrate
         self.Tstar = self.Xstar / self.sedimentationrate
-        self.b = (self.b/1e4)
+        self.b = (self.b/1e4) 
         self.m2 = self.m1
         self.n2 = self.n1
         self.DCa = self.D0Ca
