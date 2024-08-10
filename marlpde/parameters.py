@@ -185,7 +185,7 @@ def jacobian_sparsity():
     # Turn offsets into a single tuple instead of a tuple of tuples.
     offsets = sum(offsets, ())
     # Check that we have as many offsets as diagonals:
-    try: 
+    try:
         assert len(offsets) == diagonals.shape[0]
     except AssertionError as e:
         print('Setup of diagonals incorrect.')
@@ -226,22 +226,19 @@ class Solver():
         '''
         Filter out solver settings that are mutually incompatible.
         '''
-        if self.solver != "scipy":
-            try:
+        try:
+            if self.solver != "scipy":
                 del self.__dataclass_fields__["method"]
                 del self.__dataclass_fields__["lband"]
                 del self.__dataclass_fields__["uband"]
-            except KeyError:
-                pass
-        else:
-            try:
+            else:
                 del self.__dataclass_fields__["scheme"]
                 del self.__dataclass_fields__["adaptive"]
                 if self.method != "LSODA":
                     del self.__dataclass_fields__["lband"]
                     del self.__dataclass_fields__["uband"]
-            except KeyError:
-                pass
+        except KeyError:
+            pass
 
 
 @dataclass
@@ -250,7 +247,7 @@ class Tracker:
     Initialises all the tracking parameters, such as tracker interval.
     Also indicates the quantities to be tracked, as boolean values.
     '''
-    progress_tracker_interval: float = Solver().t_range/ 1_000
+    progress_tracker_interval: float = Solver().t_range / 1_000
     live_plotting: bool = False
     plotting_interval: str = '0:05'
     data_tracker_interval: float = 0.01
