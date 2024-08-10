@@ -43,7 +43,7 @@ class Scenario:
     ccal0: quantity  = 0.3 * u.dimensionless
     cara0: quantity  = 0.6 * u.dimensionless
     xdis: quantity   = 50.0 * u.cm       # x_d   (start of dissolution zone)
-    length: quantity = 1625.0 * u.cm
+    length: quantity = 625.0 * u.cm
     Th: quantity     = 100.0 * u.cm      # h_d   (height of dissolution zone)
     phi00: quantity  = 0.8 * u.dimensionless
     ca00: quantity   = 0.326e-3 * u.M    # sqrt(Kc) / 2
@@ -138,7 +138,7 @@ def Map_Scenario():
         self.n2 = self.n1
         self.DCa = self.D0Ca
         self.PhiNR = self.PhiIni
-        self.N = 650
+        self.N = 250
 
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
@@ -205,7 +205,7 @@ class Solver():
     '''
     dt: float = 1.e-6
     # t_range is the integration time in units of T*.
-    t_range: int = 5e3
+    t_range: int = 300
     solver: str = "scipy"
     # Beware that "scheme" and "adaptive" will only be propagated if you have 
     # chosen py-pde's native "explicit" solver above.
