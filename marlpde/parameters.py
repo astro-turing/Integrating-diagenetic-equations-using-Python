@@ -139,7 +139,10 @@ def Map_Scenario():
         self.DCa = self.D0Ca
         self.PhiNR = self.PhiIni
         self.N = 200
-
+        # It could be that F-V caused instabilities instead of resolving them,
+        # e.g. in the case of oscillations.
+        # FV_switch = 1 will use the Fiadeiro-Veronis scheme for spatial derivatives.
+        FV_switch = 1
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
                                        namespace={"__post_init__": post_init})
@@ -203,40 +206,37 @@ class Solver():
     Initialises all the parameters for the solver.
     So parameters like time interval, time step and tolerance.
     '''
-    dt: float = 1.e-6
-    # t_range is the integration time in units of T*.
-    t_range: int = 1
-    solver: str = "scipy"
-    # Beware that "scheme" and "adaptive" will only be propagated if you have 
-    # chosen py-pde's native "explicit" solver above.
-    scheme: str = "euler"
-    adaptive: bool = True
+    first_step: float = 1e-6
+    atol: float = 1e-3
+    rtol: float = 1e-3
+    # t_span is a tuple (begin time, end time) of integration in units of T*.
+    t_span: tuple = (0, 1)
     # solve_ivp from scipy offers six methods. They can be set here.
-    method: str = "LSODA"
+    method: str = "Radau"
     # Setting lband and uband for method="LSODA" leads to tremendous performance
     # increase. See Scipy's solve_ivp documentation for background. Consider it
     # equivalent to providing a sparsity matrix for the "Radau" and "BDF"
     # implicit methods.
     lband: int = 1
     uband: int = 1
-    backend: str = "numba"
-    ret_info: bool = True
-
+    dense_output: bool = False
+    jac_sparsity: csr_matrix = None
+    
     def __post_init__(self):
         '''
         Filter out solver settings that are mutually incompatible.
         '''
         try:
-            if self.solver != "scipy":
-                del self.__dataclass_fields__["method"]
+            if self.method == "LSODA":
+                del self.__dataclass_fields__["jac_sparsity"]
+            else:
                 del self.__dataclass_fields__["lband"]
                 del self.__dataclass_fields__["uband"]
-            else:
-                del self.__dataclass_fields__["scheme"]
-                del self.__dataclass_fields__["adaptive"]
-                if self.method != "LSODA":
-                    del self.__dataclass_fields__["lband"]
-                    del self.__dataclass_fields__["uband"]
+                
+                if self.method == "Radau" or self.method == "BDF":
+                    self.jac_sparsity = jacobian_sparsity()
+                else:
+                    del self.__dataclass_fields__["jac_sparsity"]
         except KeyError:
             pass
 
@@ -244,11 +244,12 @@ class Solver():
 @dataclass
 class Tracker:
     '''
-    Initialises all the tracking parameters, such as tracker interval.
-    Also indicates the quantities to be tracked, as boolean values.
+    Settings for tracking progress and for storing intermediate results when 
+    solve_ivp runs.
     '''
-    progress_tracker_interval: float = Solver().t_range / 1_000
-    live_plotting: bool = False
-    plotting_interval: str = '0:05'
-    data_tracker_interval: float = 0.01
-    track_U_at_bottom: bool = False
+    # Number of progress updates
+    no_progress_updates: int = 100_000
+
+    # Number of times to evaluate, for storage.
+    no_t_eval: int = 1_000
+    t_eval: np.ndarray = np.linspace(*Solver().t_span, num = no_t_eval)
