@@ -15,8 +15,6 @@ py-pde = "*"
 tqdm = "*"
 h5py = "*"
 pint = "*"
-ipython = "*"
-pandas = "*"
 
 [dev-packages]
 pylint = "*"
