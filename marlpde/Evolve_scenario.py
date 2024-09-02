@@ -184,8 +184,4 @@ if __name__ == '__main__':
     pde_parms = asdict(Map_Scenario()) 
     solver_parms = asdict(Solver()) 
     tracker_parms = asdict(Tracker())
-    solution, covered_time, depths, Xstar, slices_all_fields, store_folder = \
-        integrate_equations(solver_parms, tracker_parms, pde_parms)
-    Plot_results(solution, covered_time, depths, Xstar, slices_all_fields, 
-                 store_folder)
-
+    Plot_results(*integrate_equations(solver_parms, tracker_parms, pde_parms))
