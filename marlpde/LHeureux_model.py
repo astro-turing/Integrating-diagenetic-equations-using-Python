@@ -7,7 +7,10 @@ from numba import njit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
 
 class LMAHeureuxPorosityDiff():
-
+    '''
+    This class defines all the parameters for the diagenetic model.
+    '''
+    
     def __init__(self, Depths, slices_all_fields, CA0, CC0, cCa0, cCO30, Phi0, 
                  sedimentationrate, Xstar, Tstar, k1, k2, k3, k4, m1, m2, n1, 
                  n2, b, beta, rhos, rhow, rhos0, KA, KC, muA, D0Ca, PhiNR, 
