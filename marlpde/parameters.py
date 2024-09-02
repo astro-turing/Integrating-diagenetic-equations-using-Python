@@ -118,7 +118,8 @@ def Map_Scenario():
                            ("n2", float, None),
                            ("DCa", float, None),
                            ("PhiNR", float, None),
-                           ("N", int, None)])
+                           ("N", int, None),
+                           ("FV_switch", int, None)])
 
     def post_init(self):
         # The Python parameters that need additional conversion
@@ -138,11 +139,12 @@ def Map_Scenario():
         self.n2 = self.n1
         self.DCa = self.D0Ca
         self.PhiNR = self.PhiIni
+        # The number of cells that comprise the grid.
         self.N = 200
         # It could be that F-V caused instabilities instead of resolving them,
         # e.g. in the case of oscillations.
         # FV_switch = 1 will use the Fiadeiro-Veronis scheme for spatial derivatives.
-        FV_switch = 1
+        self.FV_switch = 1
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
                                        namespace={"__post_init__": post_init})
