@@ -1,7 +1,6 @@
 from pde.grids.operators.cartesian import _make_derivative
 from pde import FieldCollection, ScalarField
 import numpy as np
-import line_profiler
 from numba import njit
 
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
@@ -160,7 +159,6 @@ class LMAHeureuxPorosityDiff():
                     1/Peclet[i]
         return sigma                       
 
-    @line_profiler.profile
     def fun(self, t, y, progress_proxy, progress_dt, t0):
         """ 
         For tqdm to monitor progress. 
@@ -289,7 +287,6 @@ class LMAHeureuxPorosityDiff():
 
         return FieldCollection([dCA_dt, dCC_dt, dcCa_dt, dcCO3_dt, dPhi_dt]).data.ravel()
 
-    @line_profiler.profile
     def fun_numba(self, t, y, progress_proxy, progress_dt, t0):
         """ For tqdm to monitor progress.
         From 
@@ -362,7 +359,7 @@ class LMAHeureuxPorosityDiff():
                                               FV_switch)
 
     @staticmethod
-    @njit(cache=True)
+    @njit(cache=False)
     def pde_rhs(CA, CC, cCa, cCO3, Phi, CA_grad_back_op, CA_grad_forw_op,
                 CC_grad_back_op, CC_grad_forw_op,
                 cCa_grad_back_op, cCa_grad_forw_op, cCa_laplace_op, 
@@ -429,7 +426,7 @@ class LMAHeureuxPorosityDiff():
 
             # Implementing equation 6 from l'Heureux.
             denominator[i] = 1 - 2 * np.log(Phi[i])
-            one_minus_Phi[i] = 1 - Phi[i]                 
+            one_minus_Phi[i] = 1 - Phi[i]
             # dPhi[i] = auxcon * F[i] * (Phi[i] ** 3) / one_minus_Phi[i]
             dPhi[i] = dPhi_fixed
 
