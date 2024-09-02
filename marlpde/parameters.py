@@ -217,6 +217,7 @@ class Solver():
     # implicit methods.
     lband: int = 1
     uband: int = 1
+    backend: str = "numba"
     dense_output: bool = False
     jac_sparsity: csr_matrix = None
     

@@ -92,12 +92,21 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
         t0 = solver_parms["t_span"][0]
         end_time = solver_parms["t_span"][1]
         progress_bar_args = [pbar, (end_time - t0) / no_progress_updates, t0]
-  
-        sol = solve_ivp(fun=eq.fun_numba, y0=y0, **solver_parms, 
-                    t_eval= tracker_parms["t_eval"], 
-                    events = [eq.zeros, eq.zeros_CA, eq.zeros_CC, \
-                    eq.ones_CA_plus_CC, eq.ones_Phi, eq.zeros_U, eq.zeros_W],  
-                    args=progress_bar_args)
+
+        # The backend parameter determines which function should be called to 
+        # determine the right-hand sides of the five pdes. It can be either
+        # a Numpy-based function or a Numba-based function. The latter is 
+        # faster.
+        backend = solver_parms["backend"]
+        # "backend" is not an argument for solve_ivp, so remove it now.
+        del solver_parms["backend"]
+
+        sol = solve_ivp(eq.fun if backend=="numpy" else eq.fun_numba, 
+                        y0=y0, **solver_parms,
+                        t_eval= tracker_parms["t_eval"], 
+                        events = [eq.zeros, eq.zeros_CA, eq.zeros_CC, \
+                        eq.ones_CA_plus_CC, eq.ones_Phi, eq.zeros_U, \
+                        eq.zeros_W], args=progress_bar_args)
     end_computing = time.time()
     
     print()
@@ -153,7 +162,8 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     stored_parms = solver_parms | tracker_parms | pde_parms
     # Remove items which will raise a problem when storing as metadata in an
     # hdf5 file
-    del stored_parms["jac_sparsity"]
+    if "jac_sparsity" in stored_parms:
+        del stored_parms["jac_sparsity"]
 
     with h5py.File(stored_results, "w") as stored:
         stored.create_dataset("solutions", data=sol.y)
