@@ -83,11 +83,12 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     # Third step.
     y0 = state.data.ravel()   
     
+    no_progress_updates = tracker_parms["no_progress_updates"]
+
     start_computing = time.time()
-    with tqdm(total=number_of_progress_updates) as pbar:
+    with tqdm(total=no_progress_updates) as pbar:
         t0 = solver_parms["t_span"][0]
         end_time = solver_parms["t_span"][1]
-        no_progress_updates = tracker_parms["no_progress_updates"]
         progress_bar_args = [pbar, (end_time - t0) / no_progress_updates, t0]
   
         sol = solve_ivp(fun=eq.fun_numba, y0=y0, **solver_parms, 
