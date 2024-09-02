@@ -1,6 +1,6 @@
 import configparser
 from pathlib import Path
-from dataclasses import (dataclass, asdict, make_dataclass, fields)
+from dataclasses import (dataclass, asdict, make_dataclass, fields, field)
 from subprocess import (run)
 import h5py as h5
 from pint import UnitRegistry
@@ -250,4 +250,5 @@ class Tracker:
 
     # Number of times to evaluate, for storage.
     no_t_eval: int = 1_000
-    t_eval: np.ndarray = np.linspace(*Solver().t_span, num = no_t_eval)
+    t_eval: np.ndarray = field(default_factory = lambda: \
+                               np.linspace(*Solver().t_span, num = no_t_eval))
