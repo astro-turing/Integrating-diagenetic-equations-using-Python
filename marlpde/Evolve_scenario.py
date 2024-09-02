@@ -43,6 +43,28 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     depths.register_operator("grad_forw", \
         lambda grid: _make_derivative(grid, method="forward"))
     
+    # I need those two fields for computing coA, which is rather involved.
+    # There may be a simpler way of selecting these depths, but I haven't
+    # found one yet. For now these two Heaviside step functions.
+    not_too_shallow = ScalarField.from_expression(depths,
+                      f"heaviside(x-{ShallowLimit/Xstar}, 0)")
+    not_too_deep = ScalarField.from_expression(depths,
+                   f"heaviside({DeepLimit/Xstar}-x, 0)")    
+    
+    # Not all keys from pde_parms are LMAHeureuxPorosityDiff arguments.
+    # Taken from https://stackoverflow.com/questions/334655/passing-a-\
+    # dictionary-to-a-function-as-keyword-parameters
+    filtered_pde_parms = {k: v for k, v in pde_parms.items() if k in [p.name for
+                          p in 
+                          inspect.signature(LMAHeureuxPorosityDiff).parameters.\
+                          values()]}
+
+    slices_for_all_fields = [slice(i * Number_of_depths, (i+1) * Number_of_depths) \
+                             for i in range(5)]            
+    
+    eq = LMAHeureuxPorosityDiff(depths, slices_for_all_fields, not_too_shallow, 
+                                not_too_deep, **filtered_pde_parms)     
+    
     # Setting initial values for all five fields in three steps.
     # This is perhaps more involved than necessary, since the
     # end result is a 1D Numpy array with a length of five times
@@ -60,28 +82,6 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
                          CO3Surface, PorSurface)
     # Third step.
     y0 = state.data.ravel()   
-    
-    # I need those two fields for computing coA, which is rather involved.
-    # There may be a simpler way of selecting these depths, but I haven't
-    # found one yet. For now these two Heaviside step functions.
-    not_too_shallow = ScalarField.from_expression(depths,
-                      f"heaviside(x-{ShallowLimit/Xstar}, 0)")
-    not_too_deep = ScalarField.from_expression(depths,
-                   f"heaviside({DeepLimit/Xstar}-x, 0)")    
-    
-    # Not all keys from pde_parms are LMAHeureuxPorosityDiff arguments.
-    # Taken from https://stackoverflow.com/questions/334655/passing-a-\
-    # dictionary-to-a-function-as-keyword-parameters
-    filtered_pde_parms = {k: v for k, v in pde_parms.items() if k in [p.name for
-                          p in 
-                          inspect.signature(LMAHeureuxPorosityDiff).parameters.\
-                          values()]}
-
-    slices_for_all_fields = [slice(i * number_of_depths, (i+1) * number_of_depths) \
-                             for i in range(5)]            
-    
-    eq = LMAHeureuxPorosityDiff(depths, slices_for_all_fields, not_too_shallow, 
-                                not_too_deep, **filtered_pde_parms)     
     
     start_computing = time.time()
     with tqdm(total=number_of_progress_updates) as pbar:
