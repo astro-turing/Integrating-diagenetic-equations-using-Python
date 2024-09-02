@@ -99,11 +99,11 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     end_computing = time.time()
     
     print()
-    print("Number of rhs evaluations = {0} \n".format(sol.nfev))
-    print("Number of Jacobian evaluations = {0} \n".format(sol.njev))
-    print("Number of LU decompositions = {0} \n".format(sol.nlu))
-    print("Status = {0} \n".format(sol.status))
-    print("Success = {0} \n".format(sol.success))
+    print(f"Number of rhs evaluations = {sol.nfev} \n")
+    print(f"Number of Jacobian evaluations = {sol.njev} \n")
+    print(f"Number of LU decompositions = {sol.nlu} \n")
+    print(f"Status = {sol.status} \n")
+    print(f"Success = {sol.success} \n")
     f = sol.t_events[0]
     print(("Times, in years, at which any field at any depth crossed zero: "\
       +', '.join(['%.2f']*len(f))+"") % tuple([Tstar * time for time in f]))
