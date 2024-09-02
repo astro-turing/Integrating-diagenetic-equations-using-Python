@@ -1,9 +1,9 @@
+from pde.grids.operators.cartesian import _make_derivative
 import numpy as np
 import line_profiler
 from pde import FieldCollection, ScalarField
 from numba import njit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
-from pde.grids.operators.cartesian import _make_derivative
 
 class LMAHeureuxPorosityDiff():
 
