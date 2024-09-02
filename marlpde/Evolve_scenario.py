@@ -9,6 +9,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import matplotlib
+matplotlib.use("AGG")
 from pde import CartesianGrid, ScalarField, FileStorage
 from pde.grids.operators.cartesian import _make_derivative
 from parameters import Map_Scenario, Solver, Tracker
@@ -59,10 +60,10 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
                           inspect.signature(LMAHeureuxPorosityDiff).parameters.\
                           values()]}
 
-    slices_for_all_fields = [slice(i * Number_of_depths, (i+1) * Number_of_depths) \
+    slices_all_fields = [slice(i * Number_of_depths, (i+1) * Number_of_depths) \
                              for i in range(5)]            
     
-    eq = LMAHeureuxPorosityDiff(depths, slices_for_all_fields, not_too_shallow, 
+    eq = LMAHeureuxPorosityDiff(depths, slices_all_fields, not_too_shallow, 
                                 not_too_deep, **filtered_pde_parms)     
     
     # Setting initial values for all five fields in three steps.
@@ -140,7 +141,8 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     if sol.status == 0:
         covered_time = Tstar * end_time
     else:
-       covered_time = pbar.n * Tstar * end_time /no_progress_updates 
+        covered_time = pbar.n * Tstar * end_time / no_progress_updates 
+
     # Store your results somewhere in a subdirectory of a parent directory.
     store_folder = "../Results/" + \
                    datetime.now().strftime("%d_%m_%Y_%H_%M_%S" + "/")
@@ -150,9 +152,10 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     storage_parms = solver_parms | tracker_parms | pde_parms
     storage = FileStorage(stored_results, info=storage_parms)
 
-    return sol, covered_time, depths, Xstar, store_folder
+    return sol, covered_time, depths, Xstar, slices_all_fields, store_folder
 
-def Plot_results(sol, covered_time, depths, Xstar, store_folder):
+def Plot_results(sol, covered_time, depths, Xstar, slices_all_fields, 
+                 store_folder):
     '''
     Plot the five fields at the end of the integration interval as a function
     of depth.
@@ -162,21 +165,27 @@ def Plot_results(sol, covered_time, depths, Xstar, store_folder):
     # Marker size
     ms = 5
     plotting_depths = ScalarField.from_expression(depths, "x").data * Xstar
-    ax.plot(plotting_depths, sol.data[0], "v", ms = ms, label = "CA")
-    ax.plot(plotting_depths, sol.data[1], "^", ms = ms, label = "CC")
-    ax.plot(plotting_depths, sol.data[2], ">", ms = ms, label = "cCa")
-    ax.plot(plotting_depths, sol.data[3], "<", ms = ms, label = "cCO3")
-    ax.plot(plotting_depths, sol.data[4], "o", ms = ms, label = "Phi")
+    ax.plot(plotting_depths, (sol.y)[slices_all_fields[0], -1], 
+            "v", ms = ms, label = "CA")
+    ax.plot(plotting_depths, (sol.y)[slices_all_fields[1], -1], 
+            "^", ms = ms, label = "CC")
+    ax.plot(plotting_depths, (sol.y)[slices_all_fields[2], -1], 
+            ">", ms = ms, label = "cCa")
+    ax.plot(plotting_depths, (sol.y)[slices_all_fields[3], -1], 
+            "<", ms = ms, label = "cCO3")
+    ax.plot(plotting_depths, (sol.y)[slices_all_fields[4], -1], 
+            "o", ms = ms, label = "Phi")
     ax.set_xlabel("Depth (cm)")
     ax.set_ylabel("Compositions and concentrations (dimensionless)")
     ax.legend(loc='upper right')
-    fig.savefig(store_folder + 'Final_distributions.png', bbox_inches="tight")
+    fig.savefig(store_folder + 'Final_distributions.pdf', bbox_inches="tight")
 
 if __name__ == '__main__':
     pde_parms = asdict(Map_Scenario()) 
     solver_parms = asdict(Solver()) 
     tracker_parms = asdict(Tracker())
-    solution, covered_time, depths, Xstar, store_folder = \
+    solution, covered_time, depths, Xstar, slices_all_fields, store_folder = \
         integrate_equations(solver_parms, tracker_parms, pde_parms)
-    Plot_results(solution, covered_time, depths, Xstar, store_folder)
+    Plot_results(solution, covered_time, depths, Xstar, slices_all_fields, 
+                 store_folder)
 
