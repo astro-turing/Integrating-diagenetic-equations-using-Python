@@ -1,6 +1,6 @@
 import numpy as np
 import line_profiler
-from pde import FieldCollection, ScalarField, FieldBase
+from pde import FieldCollection, ScalarField
 from numba import njit
 np.seterr(divide="raise", over="raise", under="warn", invalid="raise")
 from scipy.sparse import dia_matrix, lil_matrix, csr_matrix, find   
