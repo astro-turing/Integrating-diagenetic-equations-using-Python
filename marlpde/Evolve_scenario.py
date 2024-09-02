@@ -8,7 +8,7 @@ import inspect
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import h5py
+import matplotlib
 from pde import CartesianGrid, ScalarField, FileStorage
 from pde.grids.operators.cartesian import _make_derivative
 from parameters import Map_Scenario, Solver, Tracker
@@ -170,7 +170,7 @@ def Plot_results(sol, covered_time, depths, Xstar, store_folder):
     ax.set_xlabel("Depth (cm)")
     ax.set_ylabel("Compositions and concentrations (dimensionless)")
     ax.legend(loc='upper right')
-    fig.savefig(store_folder + 'Final_distributions.pdf', bbox_inches="tight")
+    fig.savefig(store_folder + 'Final_distributions.png', bbox_inches="tight")
 
 if __name__ == '__main__':
     pde_parms = asdict(Map_Scenario()) 
