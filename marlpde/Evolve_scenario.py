@@ -150,7 +150,7 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     storage_parms = solver_parms | tracker_parms | pde_parms
     storage = FileStorage(stored_results, info=storage_parms)
 
-    return sol, covered_time_span, depths, Xstar, store_folder
+    return sol, covered_time, depths, Xstar, store_folder
 
 def Plot_results(sol, covered_time, depths, Xstar, store_folder):
     '''
