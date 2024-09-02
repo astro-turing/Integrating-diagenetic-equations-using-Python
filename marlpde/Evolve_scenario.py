@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 
-from datetime import datetime
-import time
-import os
 from dataclasses import asdict
 import inspect
+import os
+import time
+from datetime import datetime
+import h5py
+from LHeureux_model import LMAHeureuxPorosityDiff
+from parameters import Map_Scenario, Solver, Tracker
+from pde import CartesianGrid, ScalarField
+from pde.grids.operators.cartesian import _make_derivative
 from scipy.integrate import solve_ivp
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 import matplotlib
+import matplotlib.pyplot as plt
 matplotlib.use("AGG")
-from pde import CartesianGrid, ScalarField, FileStorage
-from pde.grids.operators.cartesian import _make_derivative
-from parameters import Map_Scenario, Solver, Tracker
-from LHeureux_model import LMAHeureuxPorosityDiff
 
 def integrate_equations(solver_parms, tracker_parms, pde_parms):
     '''
@@ -149,8 +150,15 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     os.makedirs(store_folder)
     stored_results = store_folder + "LMAHeureuxPorosityDiff.hdf5"
     # Keep a record of all parameters.
-    storage_parms = solver_parms | tracker_parms | pde_parms
-    storage = FileStorage(stored_results, info=storage_parms)
+    stored_parms = solver_parms | tracker_parms | pde_parms
+    # Remove items which will raise a problem when storing as metadata in an
+    # hdf5 file
+    del stored_parms["jac_sparsity"]
+
+    with h5py.File(stored_results, "w") as stored:
+        stored.create_dataset("solutions", data=sol.y)
+        stored.create_dataset("times", data=sol.t)
+        stored.attrs.update(stored_parms)
 
     return sol, covered_time, depths, Xstar, slices_all_fields, store_folder
 
