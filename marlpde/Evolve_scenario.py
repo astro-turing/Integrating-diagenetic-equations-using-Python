@@ -132,9 +132,9 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
       +', '.join(['%.2f']*len(n))+"") % tuple([Tstar * time for time in n]))
     print()
     
-    print("Message from solve_ivp = {0} \n".format(sol.message))
+    print(f"Message from solve_ivp = {sol.message} \n")
     print(("Time taken for solve_ivp is "
-          "{0:.2f}s. \n".format(end_computing - start_computing)))
+          f"{end_computing - start_computing:.2f}s. \n"))
     
     if sol.status == 0:
         covered_time = Tstar * end_time
