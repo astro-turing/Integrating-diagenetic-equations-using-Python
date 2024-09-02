@@ -139,7 +139,7 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     if sol.status == 0:
         covered_time = Tstar * end_time
     else:
-       covered_time = pbar.n * Tstar * end_time /number_of_progress_updates 
+       covered_time = pbar.n * Tstar * end_time /no_progress_updates 
     # Store your results somewhere in a subdirectory of a parent directory.
     store_folder = "../Results/" + \
                    datetime.now().strftime("%d_%m_%Y_%H_%M_%S" + "/")
