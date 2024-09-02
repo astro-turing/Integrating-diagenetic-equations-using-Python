@@ -55,7 +55,7 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     # Taken from https://stackoverflow.com/questions/334655/passing-a-\
     # dictionary-to-a-function-as-keyword-parameters
     filtered_pde_parms = {k: v for k, v in pde_parms.items() if k in [p.name for
-                          p in 
+                          p in
                           inspect.signature(LMAHeureuxPorosityDiff).parameters.\
                           values()]}
 
