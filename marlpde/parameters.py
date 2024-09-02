@@ -250,5 +250,8 @@ class Tracker:
 
     # Number of times to evaluate, for storage.
     no_t_eval: int = 1_000
-    t_eval: np.ndarray = field(default_factory = lambda: \
-                               np.linspace(*Solver().t_span, num = no_t_eval))
+
+    def __post_init__(self):
+        t_eval: np.ndarray = field(default_factory = lambda: \
+                                   np.linspace(*Solver().t_span, \
+                                   num = no_t_eval))
