@@ -191,7 +191,9 @@ def jacobian_sparsity():
     try:
         assert len(offsets) == diagonals.shape[0]
     except AssertionError as e:
+        print(f'Assertion failed at the {str(e)} line. \n')
         print('Setup of diagonals incorrect.')
+
     # Construct the sparse matrix. 
     raw_matrix = lil_matrix(dia_matrix((diagonals, offsets), shape=(n, n))) 
     # Set the Jacobian elements to zero that correspond with the derivatives
