@@ -165,15 +165,21 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     if "jac_sparsity" in stored_parms:
         del stored_parms["jac_sparsity"]
 
+    # Reshape the solutions such that you get one row per field.
+    # The third axis, i.e.the time axis, can remain unchanged.
+    field_solutions = sol.y.reshape(5, Number_of_depths, sol.y.shape[-1])
+
     with h5py.File(stored_results, "w") as stored:
-        stored.create_dataset("solutions", data=sol.y)
+        stored.create_dataset("solutions", data=field_solutions)
         stored.create_dataset("times", data=sol.t)
         stored.attrs.update(stored_parms)
 
-    return sol, covered_time, depths, Xstar, slices_all_fields, store_folder
+    # We will be plotting only the distributions corresponding to the last time.
+    # Thus no point in returning all data. Moreover, all data have been saved.
 
-def Plot_results(sol, covered_time, depths, Xstar, slices_all_fields, 
-                 store_folder):
+    return field_solutions[:, :, -1], covered_time, depths, Xstar, store_folder
+
+def Plot_results(last_field_sol, covered_time, depths, Xstar, store_folder):
     '''
     Plot the five fields at the end of the integration interval as a function
     of depth.
@@ -183,16 +189,13 @@ def Plot_results(sol, covered_time, depths, Xstar, slices_all_fields,
     # Marker size
     ms = 5
     plotting_depths = ScalarField.from_expression(depths, "x").data * Xstar
-    ax.plot(plotting_depths, (sol.y)[slices_all_fields[0], -1], 
-            "v", ms = ms, label = "CA")
-    ax.plot(plotting_depths, (sol.y)[slices_all_fields[1], -1], 
-            "^", ms = ms, label = "CC")
-    ax.plot(plotting_depths, (sol.y)[slices_all_fields[2], -1], 
-            ">", ms = ms, label = "cCa")
-    ax.plot(plotting_depths, (sol.y)[slices_all_fields[3], -1], 
-            "<", ms = ms, label = "cCO3")
-    ax.plot(plotting_depths, (sol.y)[slices_all_fields[4], -1], 
-            "o", ms = ms, label = "Phi")
+
+    ax.plot(plotting_depths, last_field_sol[0], "v", ms = ms, label = "CA")
+    ax.plot(plotting_depths, last_field_sol[1], "^", ms = ms, label = "CC")
+    ax.plot(plotting_depths, last_field_sol[2], ">", ms = ms, label = "cCa")
+    ax.plot(plotting_depths, last_field_sol[3], "<", ms = ms, label = "cCO3")
+    ax.plot(plotting_depths, last_field_sol[4], "o", ms = ms, label = "Phi")
+
     ax.set_xlabel("Depth (cm)")
     ax.set_ylabel("Compositions and concentrations (dimensionless)")
     ax.legend(loc='upper right')
