@@ -43,13 +43,13 @@ def test_integration_Scenario_A():
     Scenario_parameters = asdict(Map_Scenario()) | \
         {"Phi0": 0.6, "PhiIni": 0.5, "PhiNR": 0.6}
     # integrate_equations returns four variables, we only need the first one.
-    solution, _, _, _, _, _ = integrate_equations(asdict(Solver()), 
-                                                  asdict(Tracker()),
-                                                  Scenario_parameters)
+    last_field_sol, _, _, _, _ = integrate_equations(asdict(Solver()), 
+                                                     asdict(Tracker()),
+                                                     Scenario_parameters)
 
      
     # Test the final distribution of all five fields over depths
-    assert_allclose((solution.y)[:, -1], Scenario_A_data[-1, :, :],
+    assert_allclose(last_field_sol, Scenario_A_data[-1, :, :],
                     rtol=rtol, atol=atol)
 
 def test_high_porosity_integration():
@@ -79,12 +79,12 @@ def test_high_porosity_integration():
     # Concatenate the dict containing the Scenario parameters with the
     # dict containing the solver parameters (such as required tolerance).
     # integrate_equations returns four variables, we only need the first one.
-    solution, _, _, _, _, _ = integrate_equations(asdict(Solver_parms), 
-                                                  asdict(Tracker()),
-                                                  Scenario_parameters)
+    last_field_sol, _, _, _, _ = integrate_equations(asdict(Solver_parms), 
+                                                     asdict(Tracker()),
+                                                     Scenario_parameters)
 
     # Test the final distribution of all five fields over depths
-    assert_allclose((solution.y)[:, -1], high_porosity_data[-1, :, :],
+    assert_allclose(last_field_sol, high_porosity_data[-1, :, :],
                     rtol=rtol, atol=atol)
 
 def test_cross_check_with_Matlab_output():
@@ -118,9 +118,9 @@ def test_cross_check_with_Matlab_output():
 
     max_depth = Scenario_parameters["max_depth"]  
 
-    solution, _, _, _, _, _ = integrate_equations(asdict(Solver()), 
-                                                  asdict(Tracker()),
-                                                  Scenario_parameters)
+    last_field_sol, _, _, _, _ = integrate_equations(asdict(Solver()), 
+                                                     asdict(Tracker()),
+                                                     Scenario_parameters)
 
     Number_of_depths = Scenario_parameters["N"]
 
@@ -138,12 +138,13 @@ def test_cross_check_with_Matlab_output():
         Matlab_output_interpolated[field, :] = np.interp(Python_plotting_depths, Matlab_depths, \
                                                          Matlab_output[field, :, 0])
         
-    # Compare the Python and Matlab output over all depths, except for close to the surface,
-    # since we are dealing with a boundary layer near the surface - see chapter 7, page 56 of
-    # Willem Hundsdorfer: "Numerical Solution of Advection-Diffusion-Reaction Equations".
-    # Consequently, both the Matlab and Python solutions for the concentrations and the
-    # porosity jump a bit up and down near the surface, due to the high Peclet numbers.
-    assert_allclose((solution.y)[:, -1][:, 2:], 
+    # Compare the Python and Matlab output over all depths, except for close to
+    # the surface, since we are dealing with a boundary layer near the surface 
+    # - see chapter 7, page 56 of Willem Hundsdorfer: "Numerical Solution of 
+    # Advection-Diffusion-Reaction Equations". Consequently, both the Matlab and 
+    # Python solutions for the concentrations and the porosity jump a bit up and
+    #  down near the surface, due to the high Peclet numbers.
+    assert_allclose(last_field_sol[:, 2:], 
                     Matlab_output_interpolated[:, 2:], atol = atol)
     
     
