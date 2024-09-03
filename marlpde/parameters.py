@@ -246,11 +246,12 @@ class Tracker:
     Settings for tracking progress and for storing intermediate results when 
     solve_ivp runs.
     '''
-    # Number of progress updates
+    # Number of progress updates. This only affects the progress bar.
     no_progress_updates: int = 100_000
 
     # Number of times to evaluate, for storage.
-    no_t_eval: int = 1_000
+    # 2 means only initial and end values.
+    no_t_eval: int = 2
 
 
     # Array with all times that solutions from solve_ivp should be recorded.
