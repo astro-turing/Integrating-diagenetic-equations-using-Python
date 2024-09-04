@@ -146,7 +146,7 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     
     print(f"Message from solve_ivp = {sol.message} \n")
     print(("Time taken for solve_ivp is "
-          f"{end_computing - start_computing:.2f}s. \n"))
+          f"{end_computing - start_computing:.2e}s. \n"))
     
     if sol.status == 0:
         covered_time = Tstar * end_time
@@ -172,6 +172,7 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     with h5py.File(stored_results, "w") as stored:
         stored.create_dataset("solutions", data=field_solutions)
         stored.create_dataset("times", data=sol.t)
+        stored.create_dataset("events", data=sol.t_events)
         stored.attrs.update(stored_parms)
 
     # We will be plotting only the distributions corresponding to the last time.
@@ -185,7 +186,7 @@ def Plot_results(last_field_sol, covered_time, depths, Xstar, store_folder):
     of depth.
     '''
     fig, ax = plt.subplots()
-    fig.suptitle(f"Distributions after {covered_time:.2f} years")
+    fig.suptitle(f"Distributions after {covered_time:.2e} years")
     # Marker size
     ms = 5
     plotting_depths = ScalarField.from_expression(depths, "x").data * Xstar
