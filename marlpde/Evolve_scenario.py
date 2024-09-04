@@ -172,7 +172,9 @@ def integrate_equations(solver_parms, tracker_parms, pde_parms):
     with h5py.File(stored_results, "w") as stored:
         stored.create_dataset("solutions", data=field_solutions)
         stored.create_dataset("times", data=sol.t)
-        stored.create_dataset("events", data=sol.t_events)
+        for event_index, _ in enumerate(sol.t_events):
+            stored.create_dataset("event_" + str(event_index), 
+                                  data=sol.t_events[event_index])
         stored.attrs.update(stored_parms)
 
     # We will be plotting only the distributions corresponding to the last time.
