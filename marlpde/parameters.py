@@ -1,8 +1,4 @@
-import configparser
-from pathlib import Path
-from dataclasses import (dataclass, asdict, make_dataclass, fields)
-from subprocess import (run)
-import h5py as h5
+from dataclasses import (dataclass, make_dataclass, fields)
 from pint import UnitRegistry
 import numpy as np
 from scipy.sparse import lil_matrix, dia_matrix, csr_matrix
@@ -118,7 +114,8 @@ def Map_Scenario():
                            ("n2", float, None),
                            ("DCa", float, None),
                            ("PhiNR", float, None),
-                           ("N", int, None)])
+                           ("N", int, None),
+                           ("FV_switch", int, None)])
 
     def post_init(self):
         # The Python parameters that need additional conversion
@@ -138,8 +135,12 @@ def Map_Scenario():
         self.n2 = self.n1
         self.DCa = self.D0Ca
         self.PhiNR = self.PhiIni
+        # The number of cells that comprise the grid.
         self.N = 200
-
+        # It could be that F-V caused instabilities instead of resolving them,
+        # e.g. in the case of oscillations.
+        # FV_switch = 1 will use the Fiadeiro-Veronis scheme for spatial derivatives.
+        self.FV_switch = 1
                
     derived_dataclass = make_dataclass("Mapped parameters", derived_fields,
                                        namespace={"__post_init__": post_init})
@@ -158,14 +159,12 @@ def jacobian_sparsity():
     matrix computed by `solve_ivp` (when neither the Jacobian nor the 
     Jacobian sparsity matrix was provided) has non-zero elements not 
     only on the diagonals but also on adjacent positions along the 
-    diagonals. This was confirmed by ChatGPT:
-    "It is indeed common for the Jacobian matrix of coupled partial 
-    differential equations (PDEs), such as advection-diffusion equations, 
-    to have non-zero elements beyond the main diagonal. This phenomenon, 
-    where adjacent elements in the Jacobian are non-zero, is often due 
-    to the spatial discretization of the differential equations."
-    Likewise computing a functional Jacobian is only feasible for the
-    diagonals, for positions near the diagonals it is very hard.
+    diagonals. 
+    See equation 2.58 from "Finite Difference Methods Finite for Differential
+    Equations by Randall J. Leveque for an example of off-diagonal Jacobian
+    matrix elements. This example is about the Jacobian for solving the pde 
+    describing the motion of a pendulum with a certain mass at the end of a 
+    rigid (but massless) bar.
 
     Here we will choose diagonals of width 3.
     '''
@@ -188,7 +187,9 @@ def jacobian_sparsity():
     try:
         assert len(offsets) == diagonals.shape[0]
     except AssertionError as e:
+        print(f'Assertion failed at the {str(e)} line. \n')
         print('Setup of diagonals incorrect.')
+
     # Construct the sparse matrix. 
     raw_matrix = lil_matrix(dia_matrix((diagonals, offsets), shape=(n, n))) 
     # Set the Jacobian elements to zero that correspond with the derivatives
@@ -203,16 +204,13 @@ class Solver():
     Initialises all the parameters for the solver.
     So parameters like time interval, time step and tolerance.
     '''
-    dt: float = 1.e-6
-    # t_range is the integration time in units of T*.
-    t_range: float = 1
-    solver: str = "scipy"
-    # Beware that "scheme" and "adaptive" will only be propagated if you have 
-    # chosen py-pde's native "explicit" solver above.
-    scheme: str = "euler"
-    adaptive: bool = True
+    first_step: float = 1e-6
+    atol: float = 1e-3
+    rtol: float = 1e-3
+    # t_span is a tuple (begin time, end time) of integration in units of T*.
+    t_span: tuple = (0, 1)
     # solve_ivp from scipy offers six methods. They can be set here.
-    method: str = "LSODA"
+    method: str = "Radau"
     # Setting lband and uband for method="LSODA" leads to tremendous performance
     # increase. See Scipy's solve_ivp documentation for background. Consider it
     # equivalent to providing a sparsity matrix for the "Radau" and "BDF"
@@ -220,23 +218,24 @@ class Solver():
     lband: int = 1
     uband: int = 1
     backend: str = "numba"
-    ret_info: bool = True
-
+    dense_output: bool = False
+    jac_sparsity: csr_matrix = None
+    
     def __post_init__(self):
         '''
         Filter out solver settings that are mutually incompatible.
         '''
         try:
-            if self.solver != "scipy":
-                del self.__dataclass_fields__["method"]
+            if self.method == "LSODA":
+                del self.__dataclass_fields__["jac_sparsity"]
+            else:
                 del self.__dataclass_fields__["lband"]
                 del self.__dataclass_fields__["uband"]
-            else:
-                del self.__dataclass_fields__["scheme"]
-                del self.__dataclass_fields__["adaptive"]
-                if self.method != "LSODA":
-                    del self.__dataclass_fields__["lband"]
-                    del self.__dataclass_fields__["uband"]
+                
+                if self.method == "Radau" or self.method == "BDF":
+                    self.jac_sparsity = jacobian_sparsity()
+                else:
+                    del self.__dataclass_fields__["jac_sparsity"]
         except KeyError:
             pass
 
@@ -244,11 +243,19 @@ class Solver():
 @dataclass
 class Tracker:
     '''
-    Initialises all the tracking parameters, such as tracker interval.
-    Also indicates the quantities to be tracked, as boolean values.
+    Settings for tracking progress and for storing intermediate results when 
+    solve_ivp runs.
     '''
-    progress_tracker_interval: float = Solver().t_range / 1_000
-    live_plotting: bool = False
-    plotting_interval: str = '0:05'
-    data_tracker_interval: float = 0.01
-    track_U_at_bottom: bool = False
+    # Number of progress updates. This only affects the progress bar.
+    no_progress_updates: int = 100_000
+
+    # Number of times to evaluate, for storage.
+    # 2 means only initial and end values.
+    no_t_eval: int = 2
+
+
+    # Array with all times that solutions from solve_ivp should be recorded.
+    t_eval: np.ndarray = None
+
+    def __post_init__(self):
+        self.t_eval = np.linspace(*Solver().t_span, num = self.no_t_eval)
