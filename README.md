@@ -1,17 +1,17 @@
 # Integrating diagenetic equations using Python
 
-This repo was created as an attempt to reproduce the plots shown at the kickoff of the AstroTOM ("Turing or Milankovitch") project by Niklas Hohmann, from his Matlab scripts (available at [github.com/MindTheGap-ERC/LMA-Matlab](https://github.com/MindTheGap-ERC/LMA-Matlab)). 
+This repo was created in an attempt to reproduce the plots shown at the kickoff of the AstroTOM ("Turing or Milankovitch") project by Niklas Hohmann, from his Matlab scripts (available at [github.com/MindTheGap-ERC/LMA-Matlab](https://github.com/MindTheGap-ERC/LMA-Matlab)). 
 
 AstroTOM is an OpenSSI 2021b project from the Netherlands eScience Center and Utrecht University (UU).
 
 Dr. Emilia Jarochowska (UU) is the lead applicant of this project.
 
 After replacing central differencing for the gradients in the five diagenetic equations 40-43 from [L'Heureux (2018)](https://www.hindawi.com/journals/geofluids/2018/4968315/) by forward and backward differencing depending on the sign of U and W as a first step and a Fiadeiro-Veronis spatial difference scheme as a second step, it turns out that these equations can be integrated for more than 13.190 years (the full T*) with an implicit or explicit (in time) solver, but not with a simple Eulerian scheme. A Runge-Kutta solver, with an adaptive timestep will, however, suffice.
-After correcting the value of b (5-->5e-4) it turned out that a stable integration is also possible without a Fiadeiro-Veronis scheme. The `main` branch makes use of a constant porosity diffusion coefficient.
+After correcting the value of b (5-->5e-4) it turned out that a stable integration is also possible without a Fiadeiro-Veronis scheme. We currently make use of a constant porosity diffusion coefficient.
 
-Implicit (in time) solvers with use of Jacobians (in functional forms, so without numerical approximations) are available in the `Use_solve_ivp_without_py-pde_wrapper` branch.
+The implicit (in time) solvers that `solve_ivp` offers can be deployed with its numerically approximated Jacobians and a Jacobian sparsity matrix.
 
-Wide use is made of the [py-pde](https://py-pde.readthedocs.io/en/latest/) package, especially in the `main` branch.
+Wide use is made of the [py-pde](https://py-pde.readthedocs.io/en/latest/) package, especially `CartesianGrid` and `ScalarField`.
 
 ## Installing and using
 To run this code, you need `git` and `conda` or `pip` to install .
