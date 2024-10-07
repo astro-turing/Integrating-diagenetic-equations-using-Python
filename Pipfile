@@ -15,6 +15,7 @@ py-pde = "*"
 tqdm = "*"
 h5py = "*"
 pint = "*"
+pdoc = "*"
 
 [dev-packages]
 pylint = "*"
